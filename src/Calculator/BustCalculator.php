@@ -18,6 +18,16 @@ final class BustCalculator implements CalculatorInterface {
 	public function calculate(PlayerStats $player): CalculatorResult {
 		$tier = $this->tierResolver->resolve($player->overallPick, $player->draftRound);
 
+		if ($player->isUndrafted()) {
+			return new CalculatorResult(
+				playerId: $player->id,
+				playerName: $player->name,
+				tier: $tier,
+				score: 0.0,
+				data: ['isBust' => false],
+			);
+		}
+
 		if ($player->firstStintGamesPlayed === 0) {
 			return new CalculatorResult(
 				playerId: $player->id,

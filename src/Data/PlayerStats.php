@@ -6,9 +6,9 @@ final readonly class PlayerStats {
 	public function __construct(
 		public int $id,
 		public string $name,
-		public int $draftYear,
-		public int $draftRound,
-		public int $overallPick,
+		public ?int $draftYear,
+		public ?int $draftRound,
+		public ?int $overallPick,
 		public int $firstStintAv,
 		public int $firstStintGamesPlayed,
 		public int $firstStintGamesStarted,
@@ -24,9 +24,9 @@ final readonly class PlayerStats {
 		return new self(
 			id: (int) $row['id'],
 			name: (string) $row['player_name'],
-			draftYear: (int) $row['draft_year'],
-			draftRound: (int) $row['draft_round'],
-			overallPick: (int) $row['overall_pick'],
+			draftYear: $row['draft_year'] !== null ? (int) $row['draft_year'] : null,
+			draftRound: $row['draft_round'] !== null ? (int) $row['draft_round'] : null,
+			overallPick: $row['overall_pick'] !== null ? (int) $row['overall_pick'] : null,
 			firstStintAv: (int) $row['first_stint_av'],
 			firstStintGamesPlayed: (int) $row['first_stint_games_played'],
 			firstStintGamesStarted: (int) $row['first_stint_games_started'],
@@ -75,5 +75,9 @@ final readonly class PlayerStats {
 			'firstStintSeasonsPlayed' => $this->firstStintSeasonsPlayed,
 			'position' => $this->position,
 		];
+	}
+
+	public function isUndrafted(): bool {
+		return $this->overallPick === null;
 	}
 }

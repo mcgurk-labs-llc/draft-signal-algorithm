@@ -147,7 +147,7 @@ SQL;
 	}
 
 	public function getPlayers(?int $teamId = null, ?int $year = null): array {
-		$conditions = ['p.overall_pick IS NOT NULL'];
+		$conditions = [];
 		$params = [];
 
 		if ($teamId !== null) {
@@ -183,9 +183,6 @@ SQL;
 	private function hydrateResults(array $results): array {
 		$players = [];
 		foreach ($results as $row) {
-			if (empty($row['overall_pick'])) {
-				continue;
-			}
 			$players[] = PlayerStats::fromDatabaseRow($row);
 		}
 		return $players;

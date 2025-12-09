@@ -13,7 +13,11 @@ final class TierResolver {
 		$this->round3Cutoff = $config['round3Cutoff'] ?? 100;
 	}
 
-	public function resolve(int $overallPick, int $round): string {
+	public function resolve(?int $overallPick, ?int $round): string {
+		if ($overallPick === null) {
+			return 'UDFA';
+		}
+
 		foreach ($this->pickRanges as $range) {
 			if ($overallPick >= $range['minPick'] && $overallPick <= $range['maxPick']) {
 				return $range['tier'];
