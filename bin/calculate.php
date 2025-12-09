@@ -11,7 +11,7 @@ use DraftSignal\Algorithm\Data\CloudflarePlayerDataProvider;
 use DraftSignal\Algorithm\Runner\CalculatorRunner;
 use DraftSignal\Algorithm\Tier\TierResolver;
 
-$options = getopt('', ['persist', 'team:', 'help']);
+$options = getopt('', ['persist', 'team:', 'year:', 'debug', 'help']);
 $command = strtolower($argv[count($argv) - 1]);
 if (str_contains($command, '.php') || !in_array($command, ['busts', 'steals', 'grades'])) {
 	echo "You must pass one of: busts|steals|grades as the command to calculate.\n";
@@ -33,23 +33,19 @@ if ($command === 'busts') {
 $runner = new CalculatorRunner($calculator);
 
 if (isset($options['help'])) {
-	echo "Usage: php bin/calculate.php [--persist] [--team=ID] [--help] <command>\n";
+	echo "Usage: php bin/calculate.php [--persist] [--team=ID] [--year=YEAR] [--debug] [--help] <command>\n";
 	exit;
 }
 
 $persist = isset($options['persist']);
 $teamId = isset($options['team']) ? (int) $options['team'] : null;
+$year = isset($options['year']) ? (int) $options['year'] : null;
+$debug = isset($options['debug']);
 
 try {
 	$dataProvider = new CloudflarePlayerDataProvider();
-	
-	if ($teamId !== null) {
-		$players = $dataProvider->getPlayersForTeam($teamId);
-	} else {
-		$players = $dataProvider->getAllPlayers();
-	}
-	
-	$runner->run($players, $persist, $dataProvider);
+	$players = $dataProvider->getPlayers($teamId, $year);
+	$runner->run($players, $persist, $dataProvider, $debug);
 	exit;
 } catch (Throwable $e) {
 	fwrite(STDERR, "Error: " . $e->getMessage() . "\n");

@@ -10,9 +10,11 @@ final readonly class CalculatorRunner {
 		private CalculatorInterface $calculator,
 	) {}
 
-	public function run(array $players, bool $persist, PlayerDataProviderInterface $dataProvider): void {
+	public function run(array $players, bool $persist, PlayerDataProviderInterface $dataProvider, bool $debug = false): void {
 		echo sprintf("Processing %d players\n", count($players));
 		echo str_repeat('-', 60) . "\n";
+
+		$debugData = [];
 
 		foreach ($players as $player) {
 			$result = $this->calculator->calculate($player);
@@ -21,7 +23,18 @@ final readonly class CalculatorRunner {
 				$this->calculator->persistResult($result, $dataProvider);
 			}
 
+			if ($debug) {
+				$debugData[] = [
+					'input' => $player->toArray(),
+					'output' => $result->toArray(),
+				];
+			}
+
 			echo $this->calculator->formatLine($result) . "\n";
+		}
+
+		if ($debug) {
+			$this->writeDebugLog($debugData);
 		}
 
 		echo str_repeat('-', 60) . "\n";
@@ -30,5 +43,21 @@ final readonly class CalculatorRunner {
 		} else {
 			echo "(Dry run - no database updates made)\n";
 		}
+
+		if ($debug) {
+			echo "(Debug log written to logs/debug-log.json)\n";
+		}
+	}
+
+	private function writeDebugLog(array $data): void {
+		$logsDir = 'logs';
+		if (!is_dir($logsDir)) {
+			mkdir($logsDir, 0755, true);
+		}
+
+		file_put_contents(
+			$logsDir . '/debug-log.json',
+			json_encode($data, JSON_PRETTY_PRINT)
+		);
 	}
 }

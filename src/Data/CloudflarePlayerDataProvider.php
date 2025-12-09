@@ -146,29 +146,27 @@ SQL;
 		}
 	}
 
-	public function getPlayersForTeam(int $teamId): array {
-		$excludedYears = implode(',', self::EXCLUDED_YEARS);
-		$sql = self::PLAYER_QUERY . <<<SQL
+	public function getPlayers(?int $teamId = null, ?int $year = null): array {
+		$conditions = ['p.overall_pick IS NOT NULL'];
+		$params = [];
 
-WHERE p.draft_team_id = ?
-  AND draft_year NOT IN ({$excludedYears})
-GROUP BY p.id, p.draft_team_id
-SQL;
+		if ($teamId !== null) {
+			$conditions[] = 'p.draft_team_id = ?';
+			$params[] = $teamId;
+		}
 
-		$results = $this->query($sql, [$teamId]);
-		return $this->hydrateResults($results);
-	}
+		if ($year !== null) {
+			$conditions[] = 'p.draft_year = ?';
+			$params[] = $year;
+		} else {
+			$excludedYears = implode(',', self::EXCLUDED_YEARS);
+			$conditions[] = "p.draft_year NOT IN ({$excludedYears})";
+		}
 
-	public function getAllPlayers(): array {
-		$excludedYears = implode(',', self::EXCLUDED_YEARS);
-		$sql = self::PLAYER_QUERY . <<<SQL
+		$whereClause = implode(' AND ', $conditions);
+		$sql = self::PLAYER_QUERY . "\nWHERE {$whereClause}\nGROUP BY p.id, p.draft_team_id";
 
-WHERE draft_year NOT IN ({$excludedYears})
-  AND p.overall_pick IS NOT NULL
-GROUP BY p.id, p.draft_team_id
-SQL;
-
-		$results = $this->query($sql);
+		$results = $this->query($sql, $params);
 		return $this->hydrateResults($results);
 	}
 

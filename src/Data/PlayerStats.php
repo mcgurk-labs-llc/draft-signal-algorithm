@@ -57,4 +57,23 @@ final readonly class PlayerStats {
 			position: $data['position'],
 		);
 	}
+
+	public function toArray(): array {
+		return [
+			'id' => $this->id,
+			'name' => $this->name,
+			'draftYear' => $this->draftYear,
+			'draftRound' => $this->draftRound,
+			'overallPick' => $this->overallPick,
+			'firstStintAv' => $this->firstStintAv,
+			'firstStintGamesPlayed' => $this->firstStintGamesPlayed,
+			'firstStintGamesStarted' => $this->firstStintGamesStarted,
+			'firstStintRegSnaps' => $this->firstStintRegSnaps,
+			'firstStintStSnaps' => $this->firstStintStSnaps,
+			'firstStintRegSnapPct' => $this->firstStintRegSnapPct,
+			'firstStintStSnapPct' => $this->firstStintStSnapPct,
+			'firstStintSeasonsPlayed' => $this->firstStintSeasonsPlayed,
+			'position' => $this->position,
+		];
+	}
 }

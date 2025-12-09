@@ -6,12 +6,7 @@ interface PlayerDataProviderInterface {
 	/**
 	 * @return PlayerStats[]
 	 */
-	public function getPlayersForTeam(int $teamId): array;
-
-	/**
-	 * @return PlayerStats[]
-	 */
-	public function getAllPlayers(): array;
+	public function getPlayers(?int $teamId = null, ?int $year = null): array;
 
 	public function updateBustScore(int $playerId, bool $isBust, float $bustScore): void;
 }
