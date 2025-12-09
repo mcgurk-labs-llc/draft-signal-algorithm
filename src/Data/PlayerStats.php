@@ -18,6 +18,14 @@ final readonly class PlayerStats {
 		public float $firstStintStSnapPct,
 		public int $firstStintSeasonsPlayed,
 		public string $position,
+		public int $firstStintMvps,
+		public int $firstStintPbs,
+		public int $firstStintAp1s,
+		public int $firstStintAp2s,
+		public int $firstStintOpoys,
+		public int $firstStintDpoys,
+		public bool $oroy,
+		public bool $droy,
 	) {}
 
 	public static function fromDatabaseRow(array $row): self {
@@ -36,6 +44,14 @@ final readonly class PlayerStats {
 			firstStintStSnapPct: (float) $row['first_stint_st_snap_pct'],
 			firstStintSeasonsPlayed: (int) $row['first_stint_seasons_played'],
 			position: (string) $row['position'],
+			firstStintMvps: (int) $row['first_stint_mvps'],
+			firstStintPbs: (int) $row['first_stint_pbs'],
+			firstStintAp1s: (int) $row['first_stint_ap1s'],
+			firstStintAp2s: (int) $row['first_stint_ap2s'],
+			firstStintOpoys: (int) $row['first_stint_opoys'],
+			firstStintDpoys: (int) $row['first_stint_dpoys'],
+			oroy: (bool) $row['oroy'],
+			droy: (bool) $row['droy'],
 		);
 	}
 
@@ -55,6 +71,14 @@ final readonly class PlayerStats {
 			firstStintStSnapPct: $data['firstStintStSnapPct'],
 			firstStintSeasonsPlayed: $data['firstStintSeasonsPlayed'],
 			position: $data['position'],
+			firstStintMvps: $data['firstStintMvps'],
+			firstStintPbs: $data['firstStintPbs'],
+			firstStintAp1s: $data['firstStintAp1s'],
+			firstStintAp2s: $data['firstStintAp2s'],
+			firstStintOpoys: $data['firstStintOpoys'],
+			firstStintDpoys: $data['firstStintDpoys'],
+			oroy: $data['oroy'],
+			droy: $data['droy'],
 		);
 	}
 
@@ -74,6 +98,14 @@ final readonly class PlayerStats {
 			'firstStintStSnapPct' => $this->firstStintStSnapPct,
 			'firstStintSeasonsPlayed' => $this->firstStintSeasonsPlayed,
 			'position' => $this->position,
+			'firstStintMvps' => $this->firstStintMvps,
+			'firstStintPbs' => $this->firstStintPbs,
+			'firstStintAp1s' => $this->firstStintAp1s,
+			'firstStintAp2s' => $this->firstStintAp2s,
+			'firstStintOpoys' => $this->firstStintOpoys,
+			'firstStintDpoys' => $this->firstStintDpoys,
+			'oroy' => $this->oroy,
+			'droy' => $this->droy,
 		];
 	}
 

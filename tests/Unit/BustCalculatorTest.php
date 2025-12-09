@@ -40,6 +40,14 @@ final class BustCalculatorTest extends TestCase {
 			firstStintStSnapPct: 0.0,
 			firstStintSeasonsPlayed: 0,
 			position: 'QB',
+			firstStintMvps: 0,
+			firstStintPbs: 0,
+			firstStintAp1s: 0,
+			firstStintAp2s: 0,
+			firstStintOpoys: 0,
+			firstStintDpoys: 0,
+			oroy: false,
+			droy: false,
 		);
 
 		$result = $this->calculator->calculate($player);
@@ -121,6 +129,14 @@ final class BustCalculatorTest extends TestCase {
 				firstStintStSnapPct: 10.0,
 				firstStintSeasonsPlayed: 1,
 				position: 'WR',
+				firstStintMvps: 0,
+				firstStintPbs: 0,
+				firstStintAp1s: 0,
+				firstStintAp2s: 0,
+				firstStintOpoys: 0,
+				firstStintDpoys: 0,
+				oroy: false,
+				droy: false,
 			);
 
 			$result = $this->calculator->calculate($player);
@@ -149,6 +165,14 @@ final class BustCalculatorTest extends TestCase {
 			firstStintStSnapPct: 2.0,
 			firstStintSeasonsPlayed: 5,
 			position: 'QB',
+			firstStintMvps: 0,
+			firstStintPbs: 0,
+			firstStintAp1s: 0,
+			firstStintAp2s: 0,
+			firstStintOpoys: 0,
+			firstStintDpoys: 0,
+			oroy: false,
+			droy: false,
 		);
 
 		$result = $this->calculator->calculate($player);

@@ -23,6 +23,19 @@ WITH first_other AS (
     JOIN players p2 ON p2.id = pts.player_id
     WHERE pts.team_id != p2.draft_team_id
     GROUP BY pts.player_id
+),
+first_stint_awards AS (
+    SELECT
+        pa.player_id,
+        ao.name AS award_name,
+        COUNT(*) AS award_count
+    FROM player_awards pa
+    JOIN award_options ao ON ao.id = pa.award_option_id
+    JOIN players p3 ON p3.id = pa.player_id
+    LEFT JOIN first_other fo2 ON fo2.player_id = pa.player_id
+    WHERE pa.team_id = p3.draft_team_id
+      AND (fo2.first_other_year IS NULL OR pa.year_received < fo2.first_other_year)
+    GROUP BY pa.player_id, ao.name
 )
 SELECT
     p.id,
@@ -120,7 +133,15 @@ SELECT
             END
         ),
         0
-    ) AS first_stint_seasons_played
+    ) AS first_stint_seasons_played,
+    COALESCE((SELECT award_count FROM first_stint_awards fsa WHERE fsa.player_id = p.id AND fsa.award_name = 'MVP'), 0) AS first_stint_mvps,
+    COALESCE((SELECT award_count FROM first_stint_awards fsa WHERE fsa.player_id = p.id AND fsa.award_name = 'PB'), 0) AS first_stint_pbs,
+    COALESCE((SELECT award_count FROM first_stint_awards fsa WHERE fsa.player_id = p.id AND fsa.award_name = 'AP-1'), 0) AS first_stint_ap1s,
+    COALESCE((SELECT award_count FROM first_stint_awards fsa WHERE fsa.player_id = p.id AND fsa.award_name = 'AP-2'), 0) AS first_stint_ap2s,
+    COALESCE((SELECT award_count FROM first_stint_awards fsa WHERE fsa.player_id = p.id AND fsa.award_name = 'OPOY'), 0) AS first_stint_opoys,
+    COALESCE((SELECT award_count FROM first_stint_awards fsa WHERE fsa.player_id = p.id AND fsa.award_name = 'DPOY'), 0) AS first_stint_dpoys,
+    CASE WHEN EXISTS (SELECT 1 FROM first_stint_awards fsa WHERE fsa.player_id = p.id AND fsa.award_name = 'OROY') THEN 1 ELSE 0 END AS oroy,
+    CASE WHEN EXISTS (SELECT 1 FROM first_stint_awards fsa WHERE fsa.player_id = p.id AND fsa.award_name = 'DROY') THEN 1 ELSE 0 END AS droy
 FROM players p
 LEFT JOIN player_team_seasons pts ON pts.player_id = p.id
 LEFT JOIN first_other fo ON fo.player_id = p.id
