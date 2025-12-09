@@ -23,11 +23,6 @@ Options:
   --team=ID     Only process players from a specific team ID
   --help        Show this help message
 
-Environment Variables Required:
-  CLOUDFLARE_ACCOUNT_ID
-  CLOUDFLARE_DATABASE_ID
-  CLOUDFLARE_API_TOKEN
-
 HELP;
     exit(0);
 }
