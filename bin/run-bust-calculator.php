@@ -68,7 +68,7 @@ try {
             $dataProvider->updateBustScore($result->playerId, $result->isBust, $result->bustScore);
         }
 
-        $status = $result->isBust ? 'BUST' : 'OK';
+        $status = $result->isBust ? 'BUST' : 'NOT BUST';
         echo sprintf(
             "[%s] %s (Tier %s): %.4f\n",
             $status,
