@@ -2,20 +2,13 @@
 
 namespace DraftSignal\Algorithm\Calculator\Implementations;
 
+use DraftSignal\Algorithm\Calculator\AbstractCalculator;
 use DraftSignal\Algorithm\Calculator\CalculatorInterface;
 use DraftSignal\Algorithm\Data\PlayerDataProviderInterface;
 use DraftSignal\Algorithm\Data\PlayerStats;
-use DraftSignal\Algorithm\Tier\TierResolver;
 use DraftSignal\Algorithm\Calculator\CalculatorResult;
 
-final class BustCalculator implements CalculatorInterface {
-	private TierResolver $tierResolver;
-	private array $config;
-
-	public function __construct(TierResolver $tierResolver, array $bustConfig) {
-		$this->tierResolver = $tierResolver;
-		$this->config = $bustConfig;
-	}
+final readonly class BustCalculator extends AbstractCalculator implements CalculatorInterface {
 	public function calculate(PlayerStats $player): CalculatorResult {
 		$tier = $this->tierResolver->resolve($player->overallPick, $player->draftRound);
 		if ($player->isUndrafted()) {
@@ -102,12 +95,24 @@ final class BustCalculator implements CalculatorInterface {
 			data: ['isBust' => $isBust],
 		);
 	}
-
+	public function persistResult(CalculatorResult $result, PlayerDataProviderInterface $dataProvider): void {
+		$dataProvider->updateBustScore($result->playerId, $result->data['isBust'], $result->score);
+	}
+	public function formatLine(CalculatorResult $result): string {
+		$status = $result->data['isBust'] ? 'BUST' : 'NOT BUST';
+		return sprintf(
+			'[%s] %s (Tier %s): %.4f',
+			$status,
+			$result->playerName,
+			$result->tier,
+			$result->score
+		);
+	}
 	private function applySpecialTeamsRescue(int $av, PlayerStats $player, string $tier, float $expectedAv): float {
 		if ($av > 0 || $player->firstStintGamesPlayed < 12 || $player->firstStintStSnapPct < 20) {
 			return (float) $av;
 		}
-
+		
 		return match ($tier) {
 			'M' => max($av, $expectedAv * 0.20),
 			'N' => max($av, $expectedAv * 0.30),
@@ -115,11 +120,11 @@ final class BustCalculator implements CalculatorInterface {
 			default => (float) $av,
 		};
 	}
-
+	
 	private function calculateUsageScore(string $tier, float $ratioRegSnaps, float $ratioRegPct, float $ratioStSnaps, float $ratioStPct): float {
 		$earlyRoundTiers = $this->config['earlyRoundTiers'] ?? ['A', 'B', 'C', 'D', 'E', 'F'];
 		$lateRoundTiers = $this->config['lateRoundTiers'] ?? ['L', 'M', 'N', 'O'];
-
+		
 		if (in_array($tier, $earlyRoundTiers, true)) {
 			$usageScore = (0.6 * $ratioRegSnaps)
 				+ (0.3 * $ratioRegPct)
@@ -136,30 +141,7 @@ final class BustCalculator implements CalculatorInterface {
 				+ (0.15 * $ratioStSnaps)
 				+ (0.15 * $ratioStPct);
 		}
-
+		
 		return $this->clamp($usageScore);
-	}
-
-	private function getConfigValue(string $key, string $tier, float $default): float {
-		return (float) ($this->config[$key][$tier] ?? $default);
-	}
-
-	public function persistResult(CalculatorResult $result, PlayerDataProviderInterface $dataProvider): void {
-		$dataProvider->updateBustScore($result->playerId, $result->data['isBust'], $result->score);
-	}
-
-	public function formatLine(CalculatorResult $result): string {
-		$status = $result->data['isBust'] ? 'BUST' : 'NOT BUST';
-		return sprintf(
-			'[%s] %s (Tier %s): %.4f',
-			$status,
-			$result->playerName,
-			$result->tier,
-			$result->score
-		);
-	}
-
-	private function clamp(float $value, float $min = 0.0, float $max = 1.0): float {
-		return max($min, min($max, $value));
 	}
 }

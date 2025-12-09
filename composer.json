@@ -21,7 +21,7 @@
         "phpunit/phpunit": "^12"
     },
     "scripts": {
-        "test": "phpunit",
+        "test": "vendor/bin/phpunit tests/Unit",
         "calculate-busts": "php bin/calculate.php busts",
         "calculate-steals": "php bin/calculate.php steals",
         "calculate-grades": "php bin/calculate.php grades"
