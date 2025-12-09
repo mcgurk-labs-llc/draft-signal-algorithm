@@ -121,3 +121,9 @@ composer test
 
 - **Steal Calculator** - Identifies late-round picks who exceeded expectations
 - **Draft Class Calculator** - Aggregates individual scores to grade a team's draft class
+
+## License
+
+Copyright (c) 2025 McGurk Labs LLC. All Rights Reserved.
+
+This code is source-available for viewing and educational purposes only. See [LICENSE](LICENSE) for details.
