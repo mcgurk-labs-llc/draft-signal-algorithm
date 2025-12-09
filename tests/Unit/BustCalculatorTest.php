@@ -2,7 +2,7 @@
 
 namespace DraftSignal\Algorithm\Tests\Unit;
 
-use DraftSignal\Algorithm\Calculator\BustCalculator;
+use DraftSignal\Algorithm\Calculator\Implementations\BustCalculator;
 use DraftSignal\Algorithm\Config\ConfigLoader;
 use DraftSignal\Algorithm\Data\PlayerStats;
 use DraftSignal\Algorithm\Tier\TierResolver;

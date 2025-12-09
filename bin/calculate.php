@@ -5,7 +5,7 @@ if (file_exists('env.php')) {
 	require_once 'env.php';
 }
 
-use DraftSignal\Algorithm\Calculator\BustCalculator;
+use DraftSignal\Algorithm\Calculator\Implementations\BustCalculator;
 use DraftSignal\Algorithm\Config\ConfigLoader;
 use DraftSignal\Algorithm\Data\CloudflarePlayerDataProvider;
 use DraftSignal\Algorithm\Runner\CalculatorRunner;

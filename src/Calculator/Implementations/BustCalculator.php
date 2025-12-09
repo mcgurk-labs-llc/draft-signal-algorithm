@@ -1,10 +1,12 @@
 <?php
 
-namespace DraftSignal\Algorithm\Calculator;
+namespace DraftSignal\Algorithm\Calculator\Implementations;
 
+use DraftSignal\Algorithm\Calculator\CalculatorInterface;
 use DraftSignal\Algorithm\Data\PlayerDataProviderInterface;
 use DraftSignal\Algorithm\Data\PlayerStats;
 use DraftSignal\Algorithm\Tier\TierResolver;
+use DraftSignal\Algorithm\Calculator\CalculatorResult;
 
 final class BustCalculator implements CalculatorInterface {
 	private TierResolver $tierResolver;
