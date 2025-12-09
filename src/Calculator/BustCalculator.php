@@ -2,6 +2,7 @@
 
 namespace DraftSignal\Algorithm\Calculator;
 
+use DraftSignal\Algorithm\Data\PlayerDataProviderInterface;
 use DraftSignal\Algorithm\Data\PlayerStats;
 use DraftSignal\Algorithm\Tier\TierResolver;
 
@@ -21,9 +22,9 @@ final class BustCalculator implements CalculatorInterface {
 			return new CalculatorResult(
 				playerId: $player->id,
 				playerName: $player->name,
-				isBust: true,
-				bustScore: 1.0,
 				tier: $tier,
+				score: 1.0,
+				data: ['isBust' => true],
 			);
 		}
 
@@ -72,9 +73,9 @@ final class BustCalculator implements CalculatorInterface {
 		return new CalculatorResult(
 			playerId: $player->id,
 			playerName: $player->name,
-			isBust: $isBust,
-			bustScore: round($bustScore, 4),
 			tier: $tier,
+			score: round($bustScore, 4),
+			data: ['isBust' => $isBust],
 		);
 	}
 
@@ -117,6 +118,21 @@ final class BustCalculator implements CalculatorInterface {
 
 	private function getConfigValue(string $key, string $tier, float $default): float {
 		return (float) ($this->config[$key][$tier] ?? $default);
+	}
+
+	public function persistResult(CalculatorResult $result, PlayerDataProviderInterface $dataProvider): void {
+		$dataProvider->updateBustScore($result->playerId, $result->data['isBust'], $result->score);
+	}
+
+	public function formatLine(CalculatorResult $result): string {
+		$status = $result->data['isBust'] ? 'BUST' : 'NOT BUST';
+		return sprintf(
+			'[%s] %s (Tier %s): %.4f',
+			$status,
+			$result->playerName,
+			$result->tier,
+			$result->score
+		);
 	}
 
 	private function clamp(float $value, float $min = 0.0, float $max = 1.0): float {

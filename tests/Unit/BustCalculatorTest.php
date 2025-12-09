@@ -44,8 +44,8 @@ final class BustCalculatorTest extends TestCase {
 
 		$result = $this->calculator->calculate($player);
 
-		$this->assertTrue($result->isBust);
-		$this->assertEquals(1.0, $result->bustScore);
+		$this->assertTrue($result->data['isBust']);
+		$this->assertEquals(1.0, $result->score);
 	}
 
 	public function testKnownPlayersMatchExpectedBustStatus(): void {
@@ -57,13 +57,13 @@ final class BustCalculatorTest extends TestCase {
 
 			$expectedIsBust = $playerData['expectedIsBust'];
 
-			if ($result->isBust !== $expectedIsBust) {
+			if ($result->data['isBust'] !== $expectedIsBust) {
 				$failures[] = sprintf(
 					"%s: expected %s, got %s (score: %.4f, tier: %s)",
 					$playerData['name'],
 					$expectedIsBust ? 'BUST' : 'NOT BUST',
-					$result->isBust ? 'BUST' : 'NOT BUST',
-					$result->bustScore,
+					$result->data['isBust'] ? 'BUST' : 'NOT BUST',
+					$result->score,
 					$result->tier
 				);
 			}
@@ -81,8 +81,8 @@ final class BustCalculatorTest extends TestCase {
 			$player = PlayerStats::fromArray($playerData);
 			$result = $this->calculator->calculate($player);
 
-			$this->assertGreaterThanOrEqual(0.0, $result->bustScore);
-			$this->assertLessThanOrEqual(1.0, $result->bustScore);
+			$this->assertGreaterThanOrEqual(0.0, $result->score);
+			$this->assertLessThanOrEqual(1.0, $result->score);
 		}
 	}
 
@@ -153,7 +153,7 @@ final class BustCalculatorTest extends TestCase {
 
 		$result = $this->calculator->calculate($player);
 
-		$this->assertFalse($result->isBust);
-		$this->assertLessThan(0.3, $result->bustScore);
+		$this->assertFalse($result->data['isBust']);
+		$this->assertLessThan(0.3, $result->score);
 	}
 }

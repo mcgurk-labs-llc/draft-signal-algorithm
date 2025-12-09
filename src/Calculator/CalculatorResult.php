@@ -6,18 +6,17 @@ final readonly class CalculatorResult {
 	public function __construct(
 		public int $playerId,
 		public string $playerName,
-		public bool $isBust,
-		public float $bustScore,
 		public string $tier,
+		public float $score,
+		public array $data = [],
 	) {}
 
 	public function toArray(): array {
-		return [
+		return array_merge([
 			'player_id' => $this->playerId,
 			'player_name' => $this->playerName,
-			'is_bust' => $this->isBust,
-			'bust_score' => $this->bustScore,
 			'tier' => $this->tier,
-		];
+			'score' => $this->score,
+		], $this->data);
 	}
 }
