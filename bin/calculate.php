@@ -6,6 +6,7 @@ if (file_exists('env.php')) {
 }
 
 use DraftSignal\Algorithm\Calculator\Implementations\BustCalculator;
+use DraftSignal\Algorithm\Calculator\Implementations\StealCalculator;
 use DraftSignal\Algorithm\Config\ConfigLoader;
 use DraftSignal\Algorithm\Data\CloudflarePlayerDataProvider;
 use DraftSignal\Algorithm\Runner\CalculatorRunner;
@@ -19,12 +20,14 @@ if (str_contains($command, '.php') || !in_array($command, ['busts', 'steals', 'g
 }
 
 $configLoader = new ConfigLoader();
-$bustConfig = $configLoader->loadBustThresholds();
+$config = $configLoader->loadBustThresholds();
 $tierConfig = $configLoader->loadTierMappings();
 
 $tierResolver = new TierResolver($tierConfig);
 if ($command === 'busts') {
-	$calculator = new BustCalculator($tierResolver, $bustConfig);
+	$calculator = new BustCalculator($tierResolver, $config);
+} else if ($command === 'steals') {
+	$calculator = new StealCalculator($tierResolver, $config);
 } else {
 	echo "The {$command} calculator is not implemented yet.";
 	exit(1);

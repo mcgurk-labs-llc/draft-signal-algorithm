@@ -197,6 +197,13 @@ SQL;
 			[$isBust ? 1 : 0, $bustScore, $playerId]
 		);
 	}
+	
+	public function updateStealScore(int $playerId, bool $isSteal, float $stealScore): void {
+		$this->query(
+			'UPDATE players SET is_steal = ?, steal_score = ? WHERE id = ?',
+			[$isSteal ? 1 : 0, $stealScore, $playerId]
+		);
+	}
 
 	/**
 	 * @return PlayerStats[]
