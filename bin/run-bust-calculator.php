@@ -24,7 +24,7 @@ Options:
   --help        Show this help message
 
 HELP;
-    exit(0);
+    exit;
 }
 
 $dryRun = isset($options['dry-run']);
@@ -86,7 +86,7 @@ try {
         echo "(Database updated)\n";
     }
 
-    exit(0);
+    exit;
 } catch (Throwable $e) {
     fwrite(STDERR, "Error: " . $e->getMessage() . "\n");
     fwrite(STDERR, "Stack trace:\n" . $e->getTraceAsString() . "\n");
