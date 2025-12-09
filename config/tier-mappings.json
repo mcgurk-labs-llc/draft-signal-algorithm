@@ -1,0 +1,22 @@
+{
+    "pickRanges": [
+        { "tier": "A", "minPick": 1, "maxPick": 1 },
+        { "tier": "B", "minPick": 2, "maxPick": 5 },
+        { "tier": "C", "minPick": 6, "maxPick": 10 },
+        { "tier": "D", "minPick": 11, "maxPick": 15 },
+        { "tier": "E", "minPick": 16, "maxPick": 20 },
+        { "tier": "F", "minPick": 21, "maxPick": 32 },
+        { "tier": "G", "minPick": 33, "maxPick": 43 },
+        { "tier": "H", "minPick": 44, "maxPick": 50 }
+    ],
+    "roundFallbacks": {
+        "2": "I",
+        "3_early": "J",
+        "3_late": "K",
+        "4": "L",
+        "5": "M",
+        "6": "N",
+        "7": "O"
+    },
+    "round3Cutoff": 100
+}

@@ -2,3 +2,7 @@
 vendor/
 .idea/
 .wrangler/
+.phpunit.cache/
+.env
+env.php
+.gitkeep

@@ -1,8 +1,27 @@
 {
+    "name": "draft-signal/algorithm",
+    "description": "Draft pick evaluation algorithms for Draft Signal",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "DraftSignal\\Algorithm\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "DraftSignal\\Algorithm\\Tests\\": "tests/"
+        }
+    },
     "require": {
+        "php": "^8.3",
         "guzzlehttp/guzzle": "^7.10"
     },
     "require-dev": {
         "phpunit/phpunit": "^12"
+    },
+    "scripts": {
+        "test": "phpunit",
+        "calculate-busts": "php bin/run-bust-calculator.php"
     }
 }
