@@ -56,16 +56,16 @@ composer install
 composer test
 
 # Calculate bust scores (dry run - no DB updates)
-php bin/run-bust-calculator.php --dry-run
+php bin/calculate.php --dry-run busts
 
 # Calculate for a specific team
-php bin/run-bust-calculator.php --team=49 --dry-run
+php bin/calculate.php --team=49 --dry-run busts
 
 # Output as JSON
-php bin/run-bust-calculator.php --dry-run --json
+php bin/calculate.php --dry-run --json busts
 
 # Actually update the database
-php bin/run-bust-calculator.php
+php bin/calculate.php busts
 ```
 
 ### Environment Variables
@@ -92,7 +92,7 @@ composer test
 
 ```
 ├── bin/
-│   └── run-bust-calculator.php    # CLI entry point
+│   └── calculate.php    # CLI entry point
 ├── config/
 │   ├── bust-thresholds.json       # Expectations and thresholds
 │   └── tier-mappings.json         # Draft pick → tier mapping
