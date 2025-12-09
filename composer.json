@@ -22,6 +22,8 @@
     },
     "scripts": {
         "test": "phpunit",
-        "calculate-busts": "php bin/run-bust-calculator.php"
+        "calculate-busts": "php bin/calculate.php busts",
+        "calculate-steals": "php bin/calculate.php steals",
+        "calculate-grades": "php bin/calculate.php grades"
     }
 }
