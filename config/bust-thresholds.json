@@ -168,7 +168,7 @@
 		}
 	},
 	"specialist": {
-		"highCapitalMaxRound": 3,
+		"highCapitalMaxRound": 4,
 		"expectedAvMultiplier": 1.3,
 		"weights": {
 			"avWeight": 0.7,

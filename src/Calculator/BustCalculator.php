@@ -14,10 +14,8 @@ final class BustCalculator implements CalculatorInterface {
 		$this->tierResolver = $tierResolver;
 		$this->config = $bustConfig;
 	}
-
 	public function calculate(PlayerStats $player): CalculatorResult {
 		$tier = $this->tierResolver->resolve($player->overallPick, $player->draftRound);
-
 		if ($player->isUndrafted()) {
 			return new CalculatorResult(
 				playerId: $player->id,
@@ -27,7 +25,6 @@ final class BustCalculator implements CalculatorInterface {
 				data: ['isBust' => false],
 			);
 		}
-
 		if ($player->firstStintGamesPlayed === 0) {
 			return new CalculatorResult(
 				playerId: $player->id,
@@ -37,24 +34,38 @@ final class BustCalculator implements CalculatorInterface {
 				data: ['isBust' => true],
 			);
 		}
-
-		$expectedAv = max(1, $this->getConfigValue('expectedAv', $tier, 1));
+		$pos = strtoupper($player->position);
+		$isQB = ($pos === 'QB');
+		$isKicker = ($pos === 'K' || $pos === 'PK');
+		$isPunter = ($pos === 'P');
+		$isSpecialist = ($isKicker || $isPunter);
+		$earlyQbTiers = $this->config['qb']['earlyTiers'] ?? ['A', 'B', 'C', 'D', 'E'];
+		$isHighCapitalQB = $isQB && in_array($tier, $earlyQbTiers, true);
+		$isHighCapitalSpecialist = $isSpecialist && $player->draftRound !== null && $player->draftRound <= ($this->config['specialist']['highCapitalMaxRound'] ?? 3);
+		$expectedAvBase   = $this->getConfigValue('expectedAv',   $tier, 1);
 		$expectedRegSnaps = max(1, $this->getConfigValue('expectedRegSnaps', $tier, 1));
-		$expectedStSnaps = max(1, $this->getConfigValue('expectedStSnaps', $tier, 1));
-		$expectedRegPct = max(1, $this->getConfigValue('expectedRegPct', $tier, 1));
-		$expectedStPct = max(1, $this->getConfigValue('expectedStPct', $tier, 1));
-		$expectedSeasons = max(0.1, $this->getConfigValue('expectedSeasons', $tier, 3.0));
-		$bustThreshold = $this->getConfigValue('bustThreshold', $tier, 0.7);
-
+		$expectedStSnaps  = max(1, $this->getConfigValue('expectedStSnaps',  $tier, 1));
+		$expectedRegPct   = max(1, $this->getConfigValue('expectedRegPct',   $tier, 1));
+		$expectedStPct    = max(1, $this->getConfigValue('expectedStPct',    $tier, 1));
+		$expectedSeasons  = max(0.1, $this->getConfigValue('expectedSeasons', $tier, 3.0));
+		$bustThreshold    = $this->getConfigValue('bustThreshold', $tier, 0.7);
+		$expectedAv = $expectedAvBase;
+		if ($isHighCapitalQB) {
+			$qbMultiplier = $this->config['qb']['expectedAvMultiplier'] ?? 1.3;
+			$expectedAv *= $qbMultiplier;
+		}
+		if ($isHighCapitalSpecialist) {
+			$specMultiplier = $this->config['specialist']['expectedAvMultiplier'] ?? 1.3;
+			$expectedAv *= $specMultiplier;
+		}
+		$expectedAv = max(1, $expectedAv);
 		$av = $player->firstStintAv;
 		$av = $this->applySpecialTeamsRescue($av, $player, $tier, $expectedAv);
-
-		$ratioAv = min(1.0, $av / $expectedAv);
+		$ratioAv       = min(1.0, $av / $expectedAv);
 		$ratioRegSnaps = min(1.0, $player->firstStintRegSnaps / $expectedRegSnaps);
-		$ratioStSnaps = min(1.0, $player->firstStintStSnaps / $expectedStSnaps);
-		$ratioRegPct = min(1.0, $player->firstStintRegSnapPct / $expectedRegPct);
-		$ratioStPct = min(1.0, $player->firstStintStSnapPct / $expectedStPct);
-
+		$ratioStSnaps  = min(1.0, $player->firstStintStSnaps / $expectedStSnaps);
+		$ratioRegPct   = min(1.0, $player->firstStintRegSnapPct / $expectedRegPct);
+		$ratioStPct    = min(1.0, $player->firstStintStSnapPct / $expectedStPct);
 		$usageScore = $this->calculateUsageScore(
 			$tier,
 			$ratioRegSnaps,
@@ -62,24 +73,25 @@ final class BustCalculator implements CalculatorInterface {
 			$ratioStSnaps,
 			$ratioStPct
 		);
-
-		$avWeight = $this->config['weights']['avWeight'] ?? 0.6;
+		$avWeight    = $this->config['weights']['avWeight']    ?? 0.6;
 		$usageWeight = $this->config['weights']['usageWeight'] ?? 0.4;
-
+		if ($isHighCapitalQB) {
+			$avWeight    = $this->config['qb']['weights']['avWeight']    ?? 0.8;
+			$usageWeight = $this->config['qb']['weights']['usageWeight'] ?? 0.2;
+		} elseif ($isHighCapitalSpecialist) {
+			$avWeight    = $this->config['specialist']['weights']['avWeight']    ?? 0.7;
+			$usageWeight = $this->config['specialist']['weights']['usageWeight'] ?? 0.3;
+		}
 		$successScore = ($avWeight * $ratioAv) + ($usageWeight * $usageScore);
 		$successScore = $this->clamp($successScore);
-
 		$careerLengthFactor = 0.0;
 		if ($player->firstStintSeasonsPlayed > 0) {
 			$careerLengthFactor = min(1.0, $player->firstStintSeasonsPlayed / $expectedSeasons);
 		}
-
 		$successScore *= $careerLengthFactor;
 		$successScore = $this->clamp($successScore);
-
 		$bustScore = 1.0 - $successScore;
 		$isBust = $bustScore >= $bustThreshold;
-
 		return new CalculatorResult(
 			playerId: $player->id,
 			playerName: $player->name,
