@@ -29,47 +29,35 @@ final readonly class StealCalculator extends AbstractCalculator implements Calcu
 				data: ['isSteal' => false],
 			);
 		}
-		$expectedAv      = max(1, $this->getConfigValue('expectedAv', $tier, 1));
+		$expectedAv = max(1, $this->getConfigValue('expectedAv', $tier, 1));
 		$expectedRegSnaps = max(1, $this->getConfigValue('expectedRegSnaps', $tier, 1));
-		$expectedStSnaps  = max(1, $this->getConfigValue('expectedStSnaps', $tier, 1));
-		$expectedRegPct   = max(1, $this->getConfigValue('expectedRegPct', $tier, 1));
-		$expectedStPct    = max(1, $this->getConfigValue('expectedStPct', $tier, 1));
-		$stealCfg      = $this->config['steal'] ?? [];
+		$expectedStSnaps = max(1, $this->getConfigValue('expectedStSnaps', $tier, 1));
+		$expectedRegPct = max(1, $this->getConfigValue('expectedRegPct', $tier, 1));
+		$expectedStPct = max(1, $this->getConfigValue('expectedStPct', $tier, 1));
+		$stealCfg = $this->config['steal'] ?? [];
 		$stealThreshold = $stealCfg['threshold'][$tier] ?? 0.6;
-		$ratioAv       = min(1.5, $player->firstStintAv / $expectedAv); // let it exceed 1.0 for "over" logic
+		$ratioAv = min(1.5, $player->firstStintAv / $expectedAv);
 		$ratioRegSnaps = min(1.0, $player->firstStintRegSnaps / $expectedRegSnaps);
-		$ratioStSnaps  = min(1.0, $player->firstStintStSnaps / $expectedStSnaps);
-		$ratioRegPct   = min(1.0, $player->firstStintRegSnapPct / $expectedRegPct);
-		$ratioStPct    = min(1.0, $player->firstStintStSnapPct / $expectedStPct);
+		$ratioStSnaps = min(1.0, $player->firstStintStSnaps / $expectedStSnaps);
+		$ratioRegPct = min(1.0, $player->firstStintRegSnapPct / $expectedRegPct);
+		$ratioStPct = min(1.0, $player->firstStintStSnapPct / $expectedStPct);
 		$earlyRoundTiers = $this->config['earlyRoundTiers'] ?? ['A','B','C','D','E','F'];
-		$lateRoundTiers  = $this->config['lateRoundTiers']  ?? ['L','M','N','O'];
+		$lateRoundTiers = $this->config['lateRoundTiers']  ?? ['L','M','N','O'];
 		if (in_array($tier, $earlyRoundTiers, true)) {
-			$usageBase =
-				0.6  * $ratioRegSnaps +
-				0.3  * $ratioRegPct   +
-				0.05 * $ratioStSnaps  +
-				0.05 * $ratioStPct;
+			$usageBase = 0.6 * $ratioRegSnaps + 0.3 * $ratioRegPct + 0.05 * $ratioStSnaps + 0.05 * $ratioStPct;
 		} elseif (in_array($tier, $lateRoundTiers, true)) {
-			$usageBase =
-				0.25 * $ratioRegSnaps +
-				0.25 * $ratioRegPct   +
-				0.25 * $ratioStSnaps  +
-				0.25 * $ratioStPct;
+			$usageBase = 0.25 * $ratioRegSnaps + 0.25 * $ratioRegPct + 0.25 * $ratioStSnaps + 0.25 * $ratioStPct;
 		} else {
-			$usageBase =
-				0.45 * $ratioRegSnaps +
-				0.25 * $ratioRegPct   +
-				0.15 * $ratioStSnaps  +
-				0.15 * $ratioStPct;
+			$usageBase = 0.45 * $ratioRegSnaps + 0.25 * $ratioRegPct + 0.15 * $ratioStSnaps  + 0.15 * $ratioStPct;
 		}
 		$usageBase = $this->clamp($usageBase);
-		$usageOver      = max(0.0, $usageBase - 0.6);
+		$usageOver = max(0.0, $usageBase - 0.6);
 		$usageOverScore = $usageOver > 0 ? min(1.0, $usageOver / 0.4) : 0.0;
 		$avOver = max(0.0, $ratioAv - 1.0);
 		$avOverScore = $avOver > 0 ? min(1.0, $avOver / 1.5) : 0.0;
 		$awardScore = $this->calculateAwardScore($player, $tier, $stealCfg);
-		$avOverWeight    = $stealCfg['avOverWeight']    ?? 0.55;
-		$awardWeight     = $stealCfg['awardWeight']     ?? 0.30;
+		$avOverWeight = $stealCfg['avOverWeight']    ?? 0.55;
+		$awardWeight = $stealCfg['awardWeight']     ?? 0.30;
 		$usageOverWeight = $stealCfg['usageOverWeight'] ?? 0.15;
 		$stealScore = $avOverWeight * $avOverScore + $awardWeight * $awardScore + $usageOverWeight * $usageOverScore;
 		$stealScore = $this->clamp($stealScore);
