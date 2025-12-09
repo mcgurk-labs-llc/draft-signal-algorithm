@@ -10,14 +10,14 @@ final readonly class CalculatorRunner {
 		private CalculatorInterface $calculator,
 	) {}
 
-	public function run(array $players, bool $dryRun, PlayerDataProviderInterface $dataProvider): void {
+	public function run(array $players, bool $persist, PlayerDataProviderInterface $dataProvider): void {
 		echo sprintf("Processing %d players\n", count($players));
 		echo str_repeat('-', 60) . "\n";
 
 		foreach ($players as $player) {
 			$result = $this->calculator->calculate($player);
 
-			if (!$dryRun) {
+			if ($persist) {
 				$this->calculator->persistResult($result, $dataProvider);
 			}
 
@@ -25,10 +25,10 @@ final readonly class CalculatorRunner {
 		}
 
 		echo str_repeat('-', 60) . "\n";
-		if ($dryRun) {
-			echo "(Dry run - no database updates made)\n";
-		} else {
+		if ($persist) {
 			echo "(Database updated)\n";
+		} else {
+			echo "(Dry run - no database updates made)\n";
 		}
 	}
 }

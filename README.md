@@ -55,14 +55,14 @@ composer install
 # Run tests
 composer test
 
-# Calculate bust scores (dry run - no DB updates)
-php bin/calculate.php --dry-run busts
+# Calculate bust scores (persist - updates DB)
+php bin/calculate.php --persist busts
 
 # Calculate for a specific team
-php bin/calculate.php --team=49 --dry-run busts
+php bin/calculate.php --team=49 --persist busts
 
 # Output as JSON
-php bin/calculate.php --dry-run --json busts
+php bin/calculate.php --persist --json busts
 
 # Actually update the database
 php bin/calculate.php busts

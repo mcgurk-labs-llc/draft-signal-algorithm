@@ -11,7 +11,7 @@ use DraftSignal\Algorithm\Data\CloudflarePlayerDataProvider;
 use DraftSignal\Algorithm\Runner\CalculatorRunner;
 use DraftSignal\Algorithm\Tier\TierResolver;
 
-$options = getopt('', ['dry-run', 'team:', 'help']);
+$options = getopt('', ['persist', 'team:', 'help']);
 $command = strtolower($argv[count($argv) - 1]);
 if (str_contains($command, '.php') || !in_array($command, ['busts', 'steals', 'grades'])) {
 	echo "You must pass one of: busts|steals|grades as the command to calculate.\n";
@@ -33,11 +33,11 @@ if ($command === 'busts') {
 $runner = new CalculatorRunner($calculator);
 
 if (isset($options['help'])) {
-	echo "Usage: php bin/calculate.php [--dry-run] [--team=ID] [--help] <command>\n";
+	echo "Usage: php bin/calculate.php [--persist] [--team=ID] [--help] <command>\n";
 	exit;
 }
 
-$dryRun = isset($options['dry-run']);
+$persist = isset($options['persist']);
 $teamId = isset($options['team']) ? (int) $options['team'] : null;
 
 try {
@@ -49,7 +49,7 @@ try {
 		$players = $dataProvider->getAllPlayers();
 	}
 	
-	$runner->run($players, $dryRun, $dataProvider);
+	$runner->run($players, $persist, $dataProvider);
 	exit;
 } catch (Throwable $e) {
 	fwrite(STDERR, "Error: " . $e->getMessage() . "\n");
