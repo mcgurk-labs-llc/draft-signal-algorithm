@@ -164,6 +164,11 @@
 	"earlyRoundTiers": ["A", "B", "C", "D", "E", "F"],
 	"lateRoundTiers": ["L", "M", "N", "O"],
 	"steal": {
+		"autoSteal": {
+			"minRound": 4,
+			"minAp1": 2,
+			"minPb": 4
+		},
 		"avOverWeight": 0.45,
 		"awardWeight": 0.20,
 		"usageOverWeight": 0.15,

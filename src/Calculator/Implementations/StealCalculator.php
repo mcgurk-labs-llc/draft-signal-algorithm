@@ -35,6 +35,22 @@ final readonly class StealCalculator extends AbstractCalculator implements Calcu
 				data: ['isSteal' => false],
 			);
 		}
+		// Auto-steal: elite awards + late draft capital = steal, no questions asked
+		$autoStealCfg = $this->config['steal']['autoSteal'] ?? [];
+		$minRoundForAutoSteal = $autoStealCfg['minRound'] ?? 4;
+		$minAp1ForAutoSteal = $autoStealCfg['minAp1'] ?? 2;
+		$minPbForAutoSteal = $autoStealCfg['minPb'] ?? 4;
+		if ($player->draftRound !== null && $player->draftRound >= $minRoundForAutoSteal) {
+			if ($player->firstStintAp1s >= $minAp1ForAutoSteal || $player->firstStintPbs >= $minPbForAutoSteal) {
+				return new CalculatorResult(
+					playerId: $player->id,
+					playerName: $player->name,
+					tier: $tier,
+					score: 1.0,
+					data: ['isSteal' => true, 'autoSteal' => true],
+				);
+			}
+		}
 		// Tier-level expectations
 		$expectedAv       = max(1, $this->getConfigValue('expectedAv',       $tier, 1));
 		$expectedRegSnaps = max(1, $this->getConfigValue('expectedRegSnaps', $tier, 1));
