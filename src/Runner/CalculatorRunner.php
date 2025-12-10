@@ -15,13 +15,11 @@ final readonly class CalculatorRunner {
 		echo str_repeat('-', 60) . "\n";
 
 		$debugData = [];
+		$results = [];
 
 		foreach ($players as $player) {
 			$result = $this->calculator->calculate($player);
-
-			if ($persist) {
-				$this->calculator->persistResult($result, $dataProvider);
-			}
+			$results[] = $result;
 
 			if ($debug) {
 				$debugData[] = [
@@ -31,6 +29,11 @@ final readonly class CalculatorRunner {
 			}
 
 			echo $this->calculator->formatLine($result) . "\n";
+		}
+
+		if ($persist) {
+			echo "Persisting results...\n";
+			$this->calculator->persistResults($results, $dataProvider);
 		}
 
 		if ($debug) {

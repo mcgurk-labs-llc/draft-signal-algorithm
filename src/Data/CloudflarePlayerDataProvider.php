@@ -205,6 +205,54 @@ SQL;
 		);
 	}
 
+	public function bulkUpdateBustScores(array $updates): void {
+		$this->bulkUpdate($updates, 'is_bust', 'bust_score', 'isBust');
+	}
+
+	public function bulkUpdateStealScores(array $updates): void {
+		$this->bulkUpdate($updates, 'is_steal', 'steal_score', 'isSteal');
+	}
+
+	private function bulkUpdate(array $updates, string $boolColumn, string $scoreColumn, string $boolKey): void {
+		if (empty($updates)) {
+			return;
+		}
+
+		$batchSize = 500;
+		$batches = array_chunk($updates, $batchSize, true);
+
+		foreach ($batches as $batch) {
+			$ids = array_keys($batch);
+			$boolCases = [];
+			$scoreCases = [];
+			$params = [];
+
+			foreach ($batch as $playerId => $data) {
+				$boolCases[] = "WHEN id = ? THEN ?";
+				$params[] = $playerId;
+				$params[] = $data[$boolKey] ? 1 : 0;
+
+				$scoreCases[] = "WHEN id = ? THEN ?";
+				$params[] = $playerId;
+				$params[] = $data['score'];
+			}
+
+			$idPlaceholders = implode(',', array_fill(0, count($ids), '?'));
+			$params = array_merge($params, $ids);
+
+			$sql = sprintf(
+				"UPDATE players SET %s = CASE %s END, %s = CASE %s END WHERE id IN (%s)",
+				$boolColumn,
+				implode(' ', $boolCases),
+				$scoreColumn,
+				implode(' ', $scoreCases),
+				$idPlaceholders
+			);
+
+			$this->query($sql, $params);
+		}
+	}
+
 	/**
 	 * @return PlayerStats[]
 	 */

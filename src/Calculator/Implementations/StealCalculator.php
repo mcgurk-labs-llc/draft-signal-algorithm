@@ -151,6 +151,16 @@ final readonly class StealCalculator extends AbstractCalculator implements Calcu
 	public function persistResult(CalculatorResult $result, PlayerDataProviderInterface $dataProvider): void {
 		$dataProvider->updateStealScore($result->playerId, $result->data['isSteal'], $result->score);
 	}
+	public function persistResults(array $results, PlayerDataProviderInterface $dataProvider): void {
+		$updates = [];
+		foreach ($results as $result) {
+			$updates[$result->playerId] = [
+				'isSteal' => $result->data['isSteal'],
+				'score' => $result->score,
+			];
+		}
+		$dataProvider->bulkUpdateStealScores($updates);
+	}
 	
 	private function calculateAwardScore(PlayerStats $player, string $tier, array $stealCfg, array $lateRoundTiers): float {
 		$weights = $stealCfg['awardPoints'] ?? [];
