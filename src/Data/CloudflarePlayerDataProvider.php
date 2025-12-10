@@ -147,7 +147,7 @@ LEFT JOIN player_team_seasons pts ON pts.player_id = p.id
 LEFT JOIN first_other fo ON fo.player_id = p.id
 SQL;
 
-	private const EXCLUDED_YEARS = [2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2024, 2025];
+	private const EXCLUDED_YEARS = [2024, 2025];
 
 	public function __construct(
 		?Client $client = null,
