@@ -1,0 +1,30 @@
+name: Run bust and steal algorithm
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "config/**"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+
+      - name: Install dependencies
+        run: composer install
+
+      - name: Calculate Busts
+        run: php bin/calculate.php --persist busts
+
+      - name: Calculate Steals
+        run: php bin/calculate.php --persist steals
