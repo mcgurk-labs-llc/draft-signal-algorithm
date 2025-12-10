@@ -71,8 +71,8 @@ composer install
 # Run tests
 composer test
 
-# Calculate bust scores (dry run)
-php bin/calculate.php busts
+# Calculate steal scores (dry run)
+php bin/calculate.php steals
 
 # Calculate bust scores and persist to database
 php bin/calculate.php --persist busts
@@ -86,21 +86,16 @@ php bin/calculate.php --team=49 --persist busts
 # Calculate for a specific draft year
 php bin/calculate.php --year=2018 --persist steals
 
+# Calculate for a specific team's single draft class
+php bin/calculate.php --team=49 --year=2018 --persist busts
+
 # Enable debug logging (writes to logs/debug-log.json)
-php bin/calculate.php --debug --persist busts
+php bin/calculate.php --debug --persist steals
 ```
-
-### Environment Variables
-
-The calculator requires these environment variables to connect to the database:
-
-- `CLOUDFLARE_ACCOUNT_ID`
-- `CLOUDFLARE_DATABASE_ID`
-- `CLOUDFLARE_API_TOKEN`
 
 ## Testing
 
-Tests use fixture data in `tests/fixtures/known-players.json`. This file contains players with known outcomes that the algorithm must correctly classify.
+Tests use fixture data in `tests/fixtures/known-players.json`. This file contains many different players all with different profiles that gives a good testing overview.
 
 ```bash
 # Run all tests
@@ -124,7 +119,7 @@ composer test
 │   └── tier-mappings.json           # Draft pick → tier mapping
 ├── src/
 │   ├── Calculator/
-│   │   ├── AbstractCalculator.php   # Shared calculator logic
+│   │   ├── AbstractCalculator.php
 │   │   ├── CalculatorInterface.php
 │   │   ├── CalculatorResult.php
 │   │   └── Implementations/
@@ -137,11 +132,11 @@ composer test
 │   │   ├── PlayerDataProviderInterface.php
 │   │   └── PlayerStats.php
 │   ├── Runner/
-│   │   └── CalculatorRunner.php     # Orchestrates calculation + persistence
+│   │   └── CalculatorRunner.php
 │   └── Tier/
 │       └── TierResolver.php
 └── tests/
-    ├── compilation-test.sh          # PHP syntax check for CI
+    ├── compilation-test.sh
     ├── fixtures/
     │   └── known-players.json
     └── Unit/
@@ -150,12 +145,7 @@ composer test
         └── TierResolverTest.php
 ```
 
-## Future Calculators
-
-- **Draft Class Calculator** - Aggregates individual scores to grade a team's draft class
-
 ## License
 
 Copyright (c) 2025 McGurk Labs LLC. All Rights Reserved.
-
 This code is source-available for viewing and educational purposes only. See [LICENSE](LICENSE) for details.
