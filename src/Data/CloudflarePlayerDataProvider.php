@@ -218,28 +218,24 @@ SQL;
 			return;
 		}
 
-		$batchSize = 20; // D1 limits to 100 bound params; each player uses 5 params
+		$batchSize = 100; // D1 limits to 100 bound params; only scores are bound (1 per player)
 		$batches = array_chunk($updates, $batchSize, true);
 
 		foreach ($batches as $batch) {
 			$ids = array_keys($batch);
 			$boolCases = [];
 			$scoreCases = [];
-			$boolParams = [];
 			$scoreParams = [];
 
 			foreach ($batch as $playerId => $data) {
-				$boolCases[] = "WHEN id = ? THEN ?";
-				$boolParams[] = $playerId;
-				$boolParams[] = $data[$boolKey] ? 1 : 0;
+				$boolValue = $data[$boolKey] ? 1 : 0;
+				$boolCases[] = "WHEN id = {$playerId} THEN {$boolValue}";
 
-				$scoreCases[] = "WHEN id = ? THEN ?";
-				$scoreParams[] = $playerId;
+				$scoreCases[] = "WHEN id = {$playerId} THEN ?";
 				$scoreParams[] = $data['score'];
 			}
 
-			$idPlaceholders = implode(',', array_fill(0, count($ids), '?'));
-			$params = array_merge($boolParams, $scoreParams, $ids);
+			$idList = implode(',', $ids);
 
 			$sql = sprintf(
 				"UPDATE players SET %s = CASE %s END, %s = CASE %s END WHERE id IN (%s)",
@@ -247,10 +243,10 @@ SQL;
 				implode(' ', $boolCases),
 				$scoreColumn,
 				implode(' ', $scoreCases),
-				$idPlaceholders
+				$idList
 			);
 
-			$this->query($sql, $params);
+			$this->query($sql, $scoreParams);
 		}
 	}
 
