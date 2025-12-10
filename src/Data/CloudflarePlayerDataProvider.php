@@ -225,20 +225,21 @@ SQL;
 			$ids = array_keys($batch);
 			$boolCases = [];
 			$scoreCases = [];
-			$params = [];
+			$boolParams = [];
+			$scoreParams = [];
 
 			foreach ($batch as $playerId => $data) {
 				$boolCases[] = "WHEN id = ? THEN ?";
-				$params[] = $playerId;
-				$params[] = $data[$boolKey] ? 1 : 0;
+				$boolParams[] = $playerId;
+				$boolParams[] = $data[$boolKey] ? 1 : 0;
 
 				$scoreCases[] = "WHEN id = ? THEN ?";
-				$params[] = $playerId;
-				$params[] = $data['score'];
+				$scoreParams[] = $playerId;
+				$scoreParams[] = $data['score'];
 			}
 
 			$idPlaceholders = implode(',', array_fill(0, count($ids), '?'));
-			$params = array_merge($params, $ids);
+			$params = array_merge($boolParams, $scoreParams, $ids);
 
 			$sql = sprintf(
 				"UPDATE players SET %s = CASE %s END, %s = CASE %s END WHERE id IN (%s)",
