@@ -147,7 +147,7 @@ LEFT JOIN player_team_seasons pts ON pts.player_id = p.id
 LEFT JOIN first_other fo ON fo.player_id = p.id
 SQL;
 
-	private const EXCLUDED_YEARS = [2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2024, 2025];
+	private const EXCLUDED_YEARS = [2024, 2025];
 
 	public function __construct(
 		?Client $client = null,
@@ -203,6 +203,51 @@ SQL;
 			'UPDATE players SET is_steal = ?, steal_score = ? WHERE id = ?',
 			[$isSteal ? 1 : 0, $stealScore, $playerId]
 		);
+	}
+
+	public function bulkUpdateBustScores(array $updates): void {
+		$this->bulkUpdate($updates, 'is_bust', 'bust_score', 'isBust');
+	}
+
+	public function bulkUpdateStealScores(array $updates): void {
+		$this->bulkUpdate($updates, 'is_steal', 'steal_score', 'isSteal');
+	}
+
+	private function bulkUpdate(array $updates, string $boolColumn, string $scoreColumn, string $boolKey): void {
+		if (empty($updates)) {
+			return;
+		}
+
+		$batchSize = 100; // D1 limits to 100 bound params; only scores are bound (1 per player)
+		$batches = array_chunk($updates, $batchSize, true);
+
+		foreach ($batches as $batch) {
+			$ids = array_keys($batch);
+			$boolCases = [];
+			$scoreCases = [];
+			$scoreParams = [];
+
+			foreach ($batch as $playerId => $data) {
+				$boolValue = $data[$boolKey] ? 1 : 0;
+				$boolCases[] = "WHEN id = {$playerId} THEN {$boolValue}";
+
+				$scoreCases[] = "WHEN id = {$playerId} THEN ?";
+				$scoreParams[] = $data['score'];
+			}
+
+			$idList = implode(',', $ids);
+
+			$sql = sprintf(
+				"UPDATE players SET %s = CASE %s END, %s = CASE %s END WHERE id IN (%s)",
+				$boolColumn,
+				implode(' ', $boolCases),
+				$scoreColumn,
+				implode(' ', $scoreCases),
+				$idList
+			);
+
+			$this->query($sql, $scoreParams);
+		}
 	}
 
 	/**

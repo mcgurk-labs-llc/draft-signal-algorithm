@@ -98,6 +98,16 @@ final readonly class BustCalculator extends AbstractCalculator implements Calcul
 	public function persistResult(CalculatorResult $result, PlayerDataProviderInterface $dataProvider): void {
 		$dataProvider->updateBustScore($result->playerId, $result->data['isBust'], $result->score);
 	}
+	public function persistResults(array $results, PlayerDataProviderInterface $dataProvider): void {
+		$updates = [];
+		foreach ($results as $result) {
+			$updates[$result->playerId] = [
+				'isBust' => $result->data['isBust'],
+				'score' => $result->score,
+			];
+		}
+		$dataProvider->bulkUpdateBustScores($updates);
+	}
 	public function formatLine(CalculatorResult $result): string {
 		$status = $result->data['isBust'] ? 'BUST' : 'NOT BUST';
 		return sprintf(

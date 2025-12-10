@@ -9,5 +9,9 @@ use DraftSignal\Algorithm\Calculator\CalculatorResult;
 interface CalculatorInterface {
 	public function calculate(PlayerStats $player): CalculatorResult;
 	public function persistResult(CalculatorResult $result, PlayerDataProviderInterface $dataProvider): void;
+	/**
+	 * @param CalculatorResult[] $results
+	 */
+	public function persistResults(array $results, PlayerDataProviderInterface $dataProvider): void;
 	public function formatLine(CalculatorResult $result): string;
 }
