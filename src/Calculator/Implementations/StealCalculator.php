@@ -86,24 +86,31 @@ final readonly class StealCalculator extends AbstractCalculator implements Calcu
 			if ($usageOverScore < 0.0) $usageOverScore = 0.0;
 			if ($usageOverScore > 1.0) $usageOverScore = 1.0;
 		}
-		// 4) Awards score (unchanged)
-		$awardScore = $this->calculateAwardScore($player, $tier, $stealCfg);
-		// 5) Longevity factor: reward sustained production, penalize flash-in-the-pan
-		// Players need to stick around to be considered a true steal
+		// 4) Awards score (with late-round multiplier for bias correction)
+		$awardScore = $this->calculateAwardScore($player, $tier, $stealCfg, $lateRoundTiers);
+		// 5) Starter factor: reward players who actually start games
+		$starterScore = 0.0;
+		$minGamesForStarterCredit = $stealCfg['minGamesForStarterCredit'] ?? 16;
+		if ($player->firstStintGamesPlayed >= $minGamesForStarterCredit) {
+			$starterRatio = $player->firstStintGamesStarted / $player->firstStintGamesPlayed;
+			$starterScore = $this->clamp($starterRatio);
+		}
+		// 6) Longevity factor: reward sustained production, penalize flash-in-the-pan
 		$longevityFactor = 1.0;
 		if ($player->firstStintSeasonsPlayed < $expectedSeasons) {
-			// Scale from 0.5 (1 season) to 1.0 (met expected seasons)
 			$seasonRatio = $player->firstStintSeasonsPlayed / $expectedSeasons;
 			$longevityFactor = 0.5 + (0.5 * $seasonRatio);
 		}
-		// 6) Combine AV-over + awards + usage-over, then apply longevity
-		$avOverWeight    = $stealCfg['avOverWeight']    ?? 0.55;
-		$awardWeight     = $stealCfg['awardWeight']     ?? 0.30;
+		// 7) Combine all factors, then apply longevity
+		$avOverWeight    = $stealCfg['avOverWeight']    ?? 0.45;
+		$awardWeight     = $stealCfg['awardWeight']     ?? 0.20;
 		$usageOverWeight = $stealCfg['usageOverWeight'] ?? 0.15;
+		$starterWeight   = $stealCfg['starterWeight']   ?? 0.20;
 		$rawStealScore =
 			$avOverWeight    * $avOverScore +
 			$awardWeight     * $awardScore  +
-			$usageOverWeight * $usageOverScore;
+			$usageOverWeight * $usageOverScore +
+			$starterWeight   * $starterScore;
 		$stealScore = $rawStealScore * $longevityFactor;
 		$stealScore = $this->clamp($stealScore);
 		$isSteal    = ($stealScore >= $stealThreshold);
@@ -129,7 +136,7 @@ final readonly class StealCalculator extends AbstractCalculator implements Calcu
 		$dataProvider->updateStealScore($result->playerId, $result->data['isSteal'], $result->score);
 	}
 	
-	private function calculateAwardScore(PlayerStats $player, string $tier, array $stealCfg): float {
+	private function calculateAwardScore(PlayerStats $player, string $tier, array $stealCfg, array $lateRoundTiers): float {
 		$weights = $stealCfg['awardPoints'] ?? [];
 		$norms   = $stealCfg['awardNorm']   ?? [];
 		$mvpW   = $weights['mvp']  ?? 80;
@@ -157,6 +164,11 @@ final readonly class StealCalculator extends AbstractCalculator implements Calcu
 			$norm = 40.0;
 		}
 		$score = $awardPoints / $norm;
+		// Late-round players face bias in award voting - boost their award value
+		if (in_array($tier, $lateRoundTiers, true) || $tier === 'UDFA') {
+			$lateRoundAwardMultiplier = $stealCfg['lateRoundAwardMultiplier'] ?? 1.5;
+			$score *= $lateRoundAwardMultiplier;
+		}
 		return $this->clamp($score);
 	}
 }
