@@ -220,16 +220,16 @@ final class CloudflarePlayerDataProviderTest extends TestCase {
 	// Batching Tests
 	// =========================================================================
 
-	public function testBulkUpdateSplitsIntoBatchesOf500(): void {
+	public function testBulkUpdateSplitsIntoBatchesOf20(): void {
 		$responses = [
 			new Response(200, [], json_encode(['result' => [['results' => []]]])),
 			new Response(200, [], json_encode(['result' => [['results' => []]]])),
 		];
 		$provider = $this->createProviderWithMock($responses);
 
-		// Create 600 updates to trigger 2 batches (500 + 100)
+		// Create 25 updates to trigger 2 batches (20 + 5)
 		$updates = [];
-		for ($i = 1; $i <= 600; $i++) {
+		for ($i = 1; $i <= 25; $i++) {
 			$updates[$i] = ['isBust' => $i % 2 === 0, 'score' => $i / 1000];
 		}
 
@@ -239,22 +239,22 @@ final class CloudflarePlayerDataProviderTest extends TestCase {
 
 		$bodies = $this->getAllRequestBodies();
 
-		// First batch should have 500 players
+		// First batch should have 20 players
 		$firstBatchPlaceholders = substr_count($bodies[0]['sql'], '?');
 		// Each player: 2 params for bool CASE + 2 params for score CASE + 1 for WHERE IN = 5 params
-		// 500 players = 2500 params total
-		$this->assertEquals(2500, $firstBatchPlaceholders);
+		// 20 players = 100 params total (D1 limit)
+		$this->assertEquals(100, $firstBatchPlaceholders);
 
-		// Second batch should have 100 players = 500 params
+		// Second batch should have 5 players = 25 params
 		$secondBatchPlaceholders = substr_count($bodies[1]['sql'], '?');
-		$this->assertEquals(500, $secondBatchPlaceholders);
+		$this->assertEquals(25, $secondBatchPlaceholders);
 	}
 
 	public function testBulkUpdateExactlyAtBatchSizeMakesSingleRequest(): void {
 		$provider = $this->createProviderWithMock();
 
 		$updates = [];
-		for ($i = 1; $i <= 500; $i++) {
+		for ($i = 1; $i <= 20; $i++) {
 			$updates[$i] = ['isBust' => true, 'score' => 0.5];
 		}
 
@@ -271,7 +271,7 @@ final class CloudflarePlayerDataProviderTest extends TestCase {
 		$provider = $this->createProviderWithMock($responses);
 
 		$updates = [];
-		for ($i = 1; $i <= 501; $i++) {
+		for ($i = 1; $i <= 21; $i++) {
 			$updates[$i] = ['isBust' => true, 'score' => 0.5];
 		}
 
@@ -418,7 +418,7 @@ final class CloudflarePlayerDataProviderTest extends TestCase {
 
 	/**
 	 * Test that batch boundaries preserve correct player-to-data mapping.
-	 * Player 500 should be in batch 1, player 501 in batch 2.
+	 * Player 20 should be in batch 1, player 21 in batch 2.
 	 */
 	public function testBatchBoundaryPreservesCorrectMapping(): void {
 		$responses = [
@@ -428,7 +428,7 @@ final class CloudflarePlayerDataProviderTest extends TestCase {
 		$provider = $this->createProviderWithMock($responses);
 
 		$updates = [];
-		for ($i = 1; $i <= 501; $i++) {
+		for ($i = 1; $i <= 21; $i++) {
 			// Use player ID as score to verify correct mapping
 			$updates[$i] = ['isBust' => $i % 2 === 0, 'score' => $i / 1000];
 		}
@@ -437,24 +437,24 @@ final class CloudflarePlayerDataProviderTest extends TestCase {
 
 		$bodies = $this->getAllRequestBodies();
 
-		// First batch: players 1-500
-		// Last bool param pair should be for player 500: id=500, value=1 (even)
-		// Bool params are first 1000 elements (500 players * 2)
+		// First batch: players 1-20
+		// Last bool param pair should be for player 20: id=20, value=1 (even)
+		// Bool params are first 40 elements (20 players * 2)
 		$firstBatchParams = $bodies[0]['params'];
-		$this->assertEquals(500, $firstBatchParams[998]); // Last bool id
-		$this->assertEquals(1, $firstBatchParams[999]);   // Last bool value (500 is even = true = 1)
+		$this->assertEquals(20, $firstBatchParams[38]); // Last bool id
+		$this->assertEquals(1, $firstBatchParams[39]);  // Last bool value (20 is even = true = 1)
 
-		// Score params start at index 1000
-		$this->assertEquals(500, $firstBatchParams[1998]); // Last score id
-		$this->assertEquals(0.5, $firstBatchParams[1999]); // Last score value (500/1000)
+		// Score params start at index 40
+		$this->assertEquals(20, $firstBatchParams[78]);  // Last score id
+		$this->assertEquals(0.02, $firstBatchParams[79]); // Last score value (20/1000)
 
-		// Second batch: player 501 only
+		// Second batch: player 21 only
 		$secondBatchParams = $bodies[1]['params'];
-		$this->assertEquals(501, $secondBatchParams[0]); // Bool id
-		$this->assertEquals(0, $secondBatchParams[1]);   // Bool value (501 is odd = false = 0)
-		$this->assertEquals(501, $secondBatchParams[2]); // Score id
-		$this->assertEquals(0.501, $secondBatchParams[3]); // Score value (501/1000)
-		$this->assertEquals(501, $secondBatchParams[4]); // WHERE IN
+		$this->assertEquals(21, $secondBatchParams[0]); // Bool id
+		$this->assertEquals(0, $secondBatchParams[1]);  // Bool value (21 is odd = false = 0)
+		$this->assertEquals(21, $secondBatchParams[2]); // Score id
+		$this->assertEquals(0.021, $secondBatchParams[3]); // Score value (21/1000)
+		$this->assertEquals(21, $secondBatchParams[4]); // WHERE IN
 	}
 
 	/**
@@ -467,9 +467,9 @@ final class CloudflarePlayerDataProviderTest extends TestCase {
 		];
 		$provider = $this->createProviderWithMock($responses);
 
-		// Create 501 updates with non-sequential IDs
+		// Create 21 updates with non-sequential IDs
 		$updates = [];
-		for ($i = 0; $i < 501; $i++) {
+		for ($i = 0; $i < 21; $i++) {
 			$playerId = 10000 + ($i * 7); // Non-sequential: 10000, 10007, 10014...
 			$updates[$playerId] = ['isBust' => true, 'score' => 0.5];
 		}
@@ -478,14 +478,14 @@ final class CloudflarePlayerDataProviderTest extends TestCase {
 
 		$bodies = $this->getAllRequestBodies();
 
-		// First batch should have first 500 IDs
-		$firstBatchWhereIn = array_slice($bodies[0]['params'], -500);
+		// First batch should have first 20 IDs
+		$firstBatchWhereIn = array_slice($bodies[0]['params'], -20);
 		$this->assertEquals(10000, $firstBatchWhereIn[0]); // First ID
-		$this->assertEquals(10000 + (499 * 7), $firstBatchWhereIn[499]); // 500th ID
+		$this->assertEquals(10000 + (19 * 7), $firstBatchWhereIn[19]); // 20th ID
 
-		// Second batch should have the 501st ID
+		// Second batch should have the 21st ID
 		$secondBatchWhereIn = array_slice($bodies[1]['params'], -1);
-		$this->assertEquals(10000 + (500 * 7), $secondBatchWhereIn[0]); // 501st ID
+		$this->assertEquals(10000 + (20 * 7), $secondBatchWhereIn[0]); // 21st ID
 	}
 
 	/**

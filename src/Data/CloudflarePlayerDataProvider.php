@@ -218,7 +218,7 @@ SQL;
 			return;
 		}
 
-		$batchSize = 500;
+		$batchSize = 20; // D1 limits to 100 bound params; each player uses 5 params
 		$batches = array_chunk($updates, $batchSize, true);
 
 		foreach ($batches as $batch) {
