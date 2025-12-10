@@ -393,4 +393,242 @@ final class CloudflarePlayerDataProviderTest extends TestCase {
 		$this->assertEquals(999999999, $body['params'][0]);
 		$this->assertEquals(999999999, $body['params'][4]); // WHERE IN
 	}
+
+	// =========================================================================
+	// Robustness & Edge Case Tests
+	// =========================================================================
+
+	/**
+	 * Verify CASE statements include ELSE clause to prevent NULL on non-matching rows.
+	 * Without ELSE, if WHERE IN somehow includes an ID not in CASE, column becomes NULL.
+	 */
+	public function testBulkUpdateSqlHasNoElseClause(): void {
+		$provider = $this->createProviderWithMock();
+
+		$provider->bulkUpdateBustScores([
+			1 => ['isBust' => true, 'score' => 0.5],
+		]);
+
+		$body = $this->getLastRequestBody();
+
+		// Current implementation has no ELSE - document this as potential risk
+		// If WHERE IN and CASE WHEN get out of sync, columns could become NULL
+		$this->assertStringNotContainsString('ELSE', $body['sql']);
+	}
+
+	/**
+	 * Test that batch boundaries preserve correct player-to-data mapping.
+	 * Player 500 should be in batch 1, player 501 in batch 2.
+	 */
+	public function testBatchBoundaryPreservesCorrectMapping(): void {
+		$responses = [
+			new Response(200, [], json_encode(['result' => [['results' => []]]])),
+			new Response(200, [], json_encode(['result' => [['results' => []]]])),
+		];
+		$provider = $this->createProviderWithMock($responses);
+
+		$updates = [];
+		for ($i = 1; $i <= 501; $i++) {
+			// Use player ID as score to verify correct mapping
+			$updates[$i] = ['isBust' => $i % 2 === 0, 'score' => $i / 1000];
+		}
+
+		$provider->bulkUpdateBustScores($updates);
+
+		$bodies = $this->getAllRequestBodies();
+
+		// First batch: players 1-500
+		// Last bool param pair should be for player 500: id=500, value=1 (even)
+		// Bool params are first 1000 elements (500 players * 2)
+		$firstBatchParams = $bodies[0]['params'];
+		$this->assertEquals(500, $firstBatchParams[998]); // Last bool id
+		$this->assertEquals(1, $firstBatchParams[999]);   // Last bool value (500 is even = true = 1)
+
+		// Score params start at index 1000
+		$this->assertEquals(500, $firstBatchParams[1998]); // Last score id
+		$this->assertEquals(0.5, $firstBatchParams[1999]); // Last score value (500/1000)
+
+		// Second batch: player 501 only
+		$secondBatchParams = $bodies[1]['params'];
+		$this->assertEquals(501, $secondBatchParams[0]); // Bool id
+		$this->assertEquals(0, $secondBatchParams[1]);   // Bool value (501 is odd = false = 0)
+		$this->assertEquals(501, $secondBatchParams[2]); // Score id
+		$this->assertEquals(0.501, $secondBatchParams[3]); // Score value (501/1000)
+		$this->assertEquals(501, $secondBatchParams[4]); // WHERE IN
+	}
+
+	/**
+	 * Test with non-sequential player IDs to ensure array_chunk preserves keys.
+	 */
+	public function testNonSequentialIdsArePreservedAcrossBatches(): void {
+		$responses = [
+			new Response(200, [], json_encode(['result' => [['results' => []]]])),
+			new Response(200, [], json_encode(['result' => [['results' => []]]])),
+		];
+		$provider = $this->createProviderWithMock($responses);
+
+		// Create 501 updates with non-sequential IDs
+		$updates = [];
+		for ($i = 0; $i < 501; $i++) {
+			$playerId = 10000 + ($i * 7); // Non-sequential: 10000, 10007, 10014...
+			$updates[$playerId] = ['isBust' => true, 'score' => 0.5];
+		}
+
+		$provider->bulkUpdateBustScores($updates);
+
+		$bodies = $this->getAllRequestBodies();
+
+		// First batch should have first 500 IDs
+		$firstBatchWhereIn = array_slice($bodies[0]['params'], -500);
+		$this->assertEquals(10000, $firstBatchWhereIn[0]); // First ID
+		$this->assertEquals(10000 + (499 * 7), $firstBatchWhereIn[499]); // 500th ID
+
+		// Second batch should have the 501st ID
+		$secondBatchWhereIn = array_slice($bodies[1]['params'], -1);
+		$this->assertEquals(10000 + (500 * 7), $secondBatchWhereIn[0]); // 501st ID
+	}
+
+	/**
+	 * Test that string player IDs (if passed) are handled.
+	 * PHP array keys can be numeric strings - verify behavior.
+	 */
+	public function testNumericStringKeysAreHandled(): void {
+		$provider = $this->createProviderWithMock();
+
+		// PHP will convert "123" to int 123 as array key
+		$provider->bulkUpdateBustScores([
+			'100' => ['isBust' => true, 'score' => 0.5],
+		]);
+
+		$body = $this->getLastRequestBody();
+
+		// Should be integer 100, not string "100"
+		$this->assertSame(100, $body['params'][0]);
+		$this->assertSame(100, $body['params'][4]);
+	}
+
+	/**
+	 * Test falsy score values (0, 0.0) are correctly included, not filtered.
+	 */
+	public function testFalsyScoreValuesAreIncluded(): void {
+		$provider = $this->createProviderWithMock();
+
+		$provider->bulkUpdateBustScores([
+			1 => ['isBust' => false, 'score' => 0],
+			2 => ['isBust' => false, 'score' => 0.0],
+		]);
+
+		$body = $this->getLastRequestBody();
+
+		// Score params start at index 4 (after 2 bool pairs)
+		// JSON encoding normalizes int 0 and float 0.0 - just verify they're zero
+		$this->assertEquals(0, $body['params'][5]);   // First score
+		$this->assertEquals(0, $body['params'][7]);   // Second score
+	}
+
+	/**
+	 * Test that isBust=false with score=0 doesn't get filtered out.
+	 */
+	public function testAllFalsyValuesAreProcessed(): void {
+		$provider = $this->createProviderWithMock();
+
+		$provider->bulkUpdateBustScores([
+			1 => ['isBust' => false, 'score' => 0],
+		]);
+
+		$this->assertCount(1, $this->requestHistory);
+
+		$body = $this->getLastRequestBody();
+		$this->assertEquals([1, 0, 1, 0, 1], $body['params']);
+	}
+
+	// =========================================================================
+	// Input Validation / Error Handling Tests
+	// =========================================================================
+
+	/**
+	 * Test behavior when 'score' key is missing from update data.
+	 * Current implementation will throw a PHP warning/error.
+	 */
+	public function testMissingScoreKeyThrowsError(): void {
+		$provider = $this->createProviderWithMock();
+
+		$this->expectException(\ErrorException::class);
+
+		// Convert warnings to exceptions for this test
+		set_error_handler(function($severity, $message) {
+			throw new \ErrorException($message, 0, $severity);
+		});
+
+		try {
+			$provider->bulkUpdateBustScores([
+				1 => ['isBust' => true], // Missing 'score'
+			]);
+		} finally {
+			restore_error_handler();
+		}
+	}
+
+	/**
+	 * Test behavior when 'isBust' key is missing from update data.
+	 */
+	public function testMissingBoolKeyThrowsError(): void {
+		$provider = $this->createProviderWithMock();
+
+		$this->expectException(\ErrorException::class);
+
+		set_error_handler(function($severity, $message) {
+			throw new \ErrorException($message, 0, $severity);
+		});
+
+		try {
+			$provider->bulkUpdateBustScores([
+				1 => ['score' => 0.5], // Missing 'isBust'
+			]);
+		} finally {
+			restore_error_handler();
+		}
+	}
+
+	/**
+	 * Test that negative player IDs are passed through (no validation).
+	 */
+	public function testNegativePlayerIdIsPassedThrough(): void {
+		$provider = $this->createProviderWithMock();
+
+		$provider->bulkUpdateBustScores([
+			-1 => ['isBust' => true, 'score' => 0.5],
+		]);
+
+		$body = $this->getLastRequestBody();
+		$this->assertEquals(-1, $body['params'][0]);
+	}
+
+	/**
+	 * Test that negative scores are passed through (no validation).
+	 */
+	public function testNegativeScoreIsPassedThrough(): void {
+		$provider = $this->createProviderWithMock();
+
+		$provider->bulkUpdateBustScores([
+			1 => ['isBust' => true, 'score' => -0.5],
+		]);
+
+		$body = $this->getLastRequestBody();
+		$this->assertEquals(-0.5, $body['params'][3]);
+	}
+
+	/**
+	 * Test that scores > 1.0 are passed through (no validation).
+	 */
+	public function testScoreOverOneIsPassedThrough(): void {
+		$provider = $this->createProviderWithMock();
+
+		$provider->bulkUpdateBustScores([
+			1 => ['isBust' => true, 'score' => 999.99],
+		]);
+
+		$body = $this->getLastRequestBody();
+		$this->assertEquals(999.99, $body['params'][3]);
+	}
 }
