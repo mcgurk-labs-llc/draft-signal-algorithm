@@ -1,6 +1,6 @@
 # Draft Signal Algorithm
 
-This repository contains the algorithms used by Draft Signal to evaluate NFL draft picks. The primary purpose is transparency—showing how bust scores, steal scores, and other metrics are calculated.
+This repository contains the algorithms used by draftsignal.com to evaluate NFL draft picks. The primary purpose is transparency—showing how bust scores, steal scores, and other metrics are calculated.
 
 ## Calculators
 
