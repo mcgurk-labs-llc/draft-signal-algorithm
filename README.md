@@ -2,7 +2,9 @@
 
 This repository contains the algorithms used by Draft Signal to evaluate NFL draft picks. The primary purpose is transparency—showing how bust scores, steal scores, and other metrics are calculated.
 
-## Bust Calculator
+## Calculators
+
+### Bust Calculator
 
 The bust calculator evaluates whether a draft pick failed to meet expectations based on their draft position. It considers:
 
@@ -12,9 +14,21 @@ The bust calculator evaluates whether a draft pick failed to meet expectations b
 - **Snap percentages** - Usage rate when active
 - **Career length** - Seasons played with drafting team
 
+### Steal Calculator
+
+The steal calculator identifies players who significantly exceeded expectations for their draft position. It considers:
+
+- **AV over expectation** - How much a player's production exceeded tier expectations (1x-4x mapping)
+- **Usage over expectation** - Snap counts and percentages above baseline
+- **Awards** - Pro Bowls, All-Pro selections, MVP, OPOY/DPOY, ROY (with late-round multiplier for bias correction)
+- **Starter factor** - Games started vs. games played ratio
+- **Longevity factor** - Sustained production over expected seasons
+
+Auto-steal logic: Players drafted in round 4+ with elite accolades (2+ AP1 or 4+ Pro Bowls) are automatically classified as steals.
+
 ### Tier System
 
-Players are grouped into tiers (A-O) based on draft position:
+Players are grouped into tiers (A-O, plus UDFA) based on draft position:
 
 | Tier | Pick Range | Description |
 |------|------------|-------------|
@@ -33,8 +47,9 @@ Players are grouped into tiers (A-O) based on draft position:
 | M | R5 | Fifth round |
 | N | R6 | Sixth round |
 | O | R7 | Seventh round |
+| UDFA | Undrafted | Undrafted free agents |
 
-Each tier has different expectations and bust thresholds. A first overall pick needs to be a franchise cornerstone; a seventh rounder just needs to make the roster and contribute.
+Each tier has different expectations and thresholds. A first overall pick needs to be a franchise cornerstone; a seventh rounder just needs to make the roster and contribute.
 
 ### Configuration
 
@@ -43,8 +58,9 @@ All thresholds and expectations are defined in `config/bust-thresholds.json`. Th
 - Expected AV by tier
 - Expected games/starts
 - Expected snap counts and percentages
-- Bust threshold (what score triggers a bust classification)
+- Bust/steal thresholds by tier
 - Expected seasons with drafting team
+- Award point values and normalization factors
 
 ## Running the Calculator
 
@@ -55,17 +71,23 @@ composer install
 # Run tests
 composer test
 
-# Calculate bust scores (persist - updates DB)
+# Calculate bust scores (dry run)
+php bin/calculate.php busts
+
+# Calculate bust scores and persist to database
 php bin/calculate.php --persist busts
+
+# Calculate steal scores
+php bin/calculate.php --persist steals
 
 # Calculate for a specific team
 php bin/calculate.php --team=49 --persist busts
 
-# Output as JSON
-php bin/calculate.php --persist --json busts
+# Calculate for a specific draft year
+php bin/calculate.php --year=2018 --persist steals
 
-# Actually update the database
-php bin/calculate.php busts
+# Enable debug logging (writes to logs/debug-log.json)
+php bin/calculate.php --debug --persist busts
 ```
 
 ### Environment Variables
@@ -78,48 +100,58 @@ The calculator requires these environment variables to connect to the database:
 
 ## Testing
 
-Tests use fixture data in `tests/fixtures/known-players.json`. This file contains players with known outcomes (busts vs. non-busts) that the algorithm must correctly classify.
+Tests use fixture data in `tests/fixtures/known-players.json`. This file contains players with known outcomes that the algorithm must correctly classify.
 
 ```bash
 # Run all tests
 composer test
 
-# Run specific test
-./vendor/bin/phpunit --filter testKnownPlayersMatchExpectedBustStatus
+# Run specific test file
+./vendor/bin/phpunit tests/Unit/BustCalculatorTest.php
+./vendor/bin/phpunit tests/Unit/StealCalculatorTest.php
+
+# Run compilation check
+./tests/compilation-test.sh
 ```
 
 ## Project Structure
 
 ```
 ├── bin/
-│   └── calculate.php    # CLI entry point
+│   └── calculate.php                # CLI entry point
 ├── config/
-│   ├── bust-thresholds.json       # Expectations and thresholds
-│   └── tier-mappings.json         # Draft pick → tier mapping
+│   ├── bust-thresholds.json         # Expectations and thresholds
+│   └── tier-mappings.json           # Draft pick → tier mapping
 ├── src/
 │   ├── Calculator/
-│   │   ├── BustCalculator.php     # Main bust algorithm
+│   │   ├── AbstractCalculator.php   # Shared calculator logic
 │   │   ├── CalculatorInterface.php
-│   │   └── CalculatorResult.php
+│   │   ├── CalculatorResult.php
+│   │   └── Implementations/
+│   │       ├── BustCalculator.php   # Bust algorithm
+│   │       └── StealCalculator.php  # Steal algorithm
 │   ├── Config/
 │   │   └── ConfigLoader.php
 │   ├── Data/
 │   │   ├── CloudflarePlayerDataProvider.php
 │   │   ├── PlayerDataProviderInterface.php
 │   │   └── PlayerStats.php
+│   ├── Runner/
+│   │   └── CalculatorRunner.php     # Orchestrates calculation + persistence
 │   └── Tier/
 │       └── TierResolver.php
 └── tests/
+    ├── compilation-test.sh          # PHP syntax check for CI
     ├── fixtures/
     │   └── known-players.json
     └── Unit/
         ├── BustCalculatorTest.php
+        ├── StealCalculatorTest.php
         └── TierResolverTest.php
 ```
 
 ## Future Calculators
 
-- **Steal Calculator** - Identifies late-round picks who exceeded expectations
 - **Draft Class Calculator** - Aggregates individual scores to grade a team's draft class
 
 ## License
