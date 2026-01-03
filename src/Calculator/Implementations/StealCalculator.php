@@ -60,18 +60,19 @@ final readonly class StealCalculator extends AbstractCalculator implements Calcu
 		$expectedSeasons  = max(1, $this->getConfigValue('expectedSeasons',  $tier, 3.0));
 		$stealCfg      = $this->config['steal'] ?? [];
 		$stealThreshold = $stealCfg['threshold'][$tier] ?? 0.6;
-		// 1) AV over expectation (1x–4x -> 0–1)
+		// 1) AV over expectation - linear scale with credit for meeting expectations
+		// 0.0x → 0.00, 0.5x → 0.10, 1.0x → 0.30, 2.0x → 0.65, 4.0x → 1.00
 		$ratioAv = $player->firstStintAv / $expectedAv;
 		$ratioAv = min($ratioAv, 4.0); // cap extreme outliers
-		if ($ratioAv <= 1.0) {
-			// At or below expectation -> no steal credit from AV
-			$avOverScore = 0.0;
+		if ($ratioAv <= 0.5) {
+			$avOverScore = $ratioAv * 0.20;  // 0→0, 0.5→0.10
+		} elseif ($ratioAv <= 1.0) {
+			$avOverScore = 0.10 + (($ratioAv - 0.5) * 0.40);  // 0.5→0.10, 1.0→0.30
+		} elseif ($ratioAv <= 2.0) {
+			$avOverScore = 0.30 + (($ratioAv - 1.0) * 0.35);  // 1.0→0.30, 2.0→0.65
 		} else {
-			// Map [1.0, 4.0] -> [0.0, 1.0]
-			// 1x = 0.0, 2x ≈ 0.33, 3x ≈ 0.66, 4x = 1.0
-			$avOverScore = ($ratioAv - 1.0) / 3.0;
-			if ($avOverScore < 0.0) $avOverScore = 0.0;
-			if ($avOverScore > 1.0) $avOverScore = 1.0;
+			$avOverScore = 0.65 + (($ratioAv - 2.0) / 2.0 * 0.35);  // 2.0→0.65, 4.0→1.00
+			$avOverScore = min($avOverScore, 1.0);
 		}
 		// 2) Usage ratios (regular + ST, snaps + pct)
 		$ratioRegSnaps = min(1.0, $player->firstStintRegSnaps / $expectedRegSnaps);
@@ -92,21 +93,20 @@ final readonly class StealCalculator extends AbstractCalculator implements Calcu
 			$usageBase = 0.45 * $ratioRegSnaps + 0.25 * $ratioRegPct + 0.15 * $ratioStSnaps + 0.15 * $ratioStPct;
 		}
 		$usageBase = $this->clamp($usageBase);
-		// 3) Usage *over* expectation
-		// Treat 0.5 as "met usage expectations"
-		// 0.5 -> 0.0, 1.0 -> 1.0
-		if ($usageBase <= 0.5) {
+		// 3) Usage *over* expectation - smoother ramp from 0.3
+		// 0.3 -> 0.0, 0.5 -> 0.286, 1.0 -> 1.0
+		if ($usageBase <= 0.3) {
 			$usageOverScore = 0.0;
+		} elseif ($usageBase <= 1.0) {
+			$usageOverScore = ($usageBase - 0.3) / 0.7;
 		} else {
-			$usageOverScore = ($usageBase - 0.5) * 2.0;
-			if ($usageOverScore < 0.0) $usageOverScore = 0.0;
-			if ($usageOverScore > 1.0) $usageOverScore = 1.0;
+			$usageOverScore = 1.0;
 		}
 		// 4) Awards score (with late-round multiplier for bias correction)
 		$awardScore = $this->calculateAwardScore($player, $tier, $stealCfg, $lateRoundTiers);
 		// 5) Starter factor: reward players who actually start games
 		$starterScore = 0.0;
-		$minGamesForStarterCredit = $stealCfg['minGamesForStarterCredit'] ?? 16;
+		$minGamesForStarterCredit = $stealCfg['minGamesForStarterCredit'] ?? 14;
 		if ($player->firstStintGamesPlayed >= $minGamesForStarterCredit) {
 			$starterRatio = $player->firstStintGamesStarted / $player->firstStintGamesPlayed;
 			$starterScore = $this->clamp($starterRatio);

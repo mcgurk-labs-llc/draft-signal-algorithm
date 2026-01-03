@@ -173,7 +173,7 @@
 		"awardWeight": 0.20,
 		"usageOverWeight": 0.15,
 		"starterWeight": 0.20,
-		"minGamesForStarterCredit": 16,
+		"minGamesForStarterCredit": 14,
 		"lateRoundAwardMultiplier": 1.5,
 		"threshold": {
 			"A": 1.00,
