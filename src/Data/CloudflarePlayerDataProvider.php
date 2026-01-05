@@ -205,6 +205,10 @@ SQL;
 		);
 	}
 
+	public function updateGrade(int $playerId, float $playerGrade): void {
+		$this->query('UPDATE players SET grade = ? WHERE id = ?', [$playerGrade, $playerId]);
+	}
+
 	public function bulkUpdateBustScores(array $updates): void {
 		$this->bulkUpdate($updates, 'is_bust', 'bust_score', 'isBust');
 	}
@@ -213,7 +217,11 @@ SQL;
 		$this->bulkUpdate($updates, 'is_steal', 'steal_score', 'isSteal');
 	}
 
-	private function bulkUpdate(array $updates, string $boolColumn, string $scoreColumn, string $boolKey): void {
+	public function bulkUpdateGrade(array $updates): void {
+		$this->bulkUpdate($updates, scoreColumn: 'grade');
+	}
+
+	private function bulkUpdate(array $updates, ?string $boolColumn = null, string $scoreColumn = '', ?string $boolKey = null): void {
 		if (empty($updates)) {
 			return;
 		}
@@ -228,8 +236,10 @@ SQL;
 			$scoreParams = [];
 
 			foreach ($batch as $playerId => $data) {
-				$boolValue = $data[$boolKey] ? 1 : 0;
-				$boolCases[] = "WHEN id = {$playerId} THEN {$boolValue}";
+				if ($boolColumn !== null && $boolKey !== null) {
+					$boolValue = $data[$boolKey] ? 1 : 0;
+					$boolCases[] = "WHEN id = {$playerId} THEN {$boolValue}";
+				}
 
 				$scoreCases[] = "WHEN id = {$playerId} THEN ?";
 				$scoreParams[] = $data['score'];
@@ -237,14 +247,23 @@ SQL;
 
 			$idList = implode(',', $ids);
 
-			$sql = sprintf(
-				"UPDATE players SET %s = CASE %s END, %s = CASE %s END WHERE id IN (%s)",
-				$boolColumn,
-				implode(' ', $boolCases),
-				$scoreColumn,
-				implode(' ', $scoreCases),
-				$idList
-			);
+			if ($boolColumn !== null && $boolKey !== null) {
+				$sql = sprintf(
+					"UPDATE players SET %s = CASE %s END, %s = CASE %s END WHERE id IN (%s)",
+					$boolColumn,
+					implode(' ', $boolCases),
+					$scoreColumn,
+					implode(' ', $scoreCases),
+					$idList
+				);
+			} else {
+				$sql = sprintf(
+					"UPDATE players SET %s = CASE %s END WHERE id IN (%s)",
+					$scoreColumn,
+					implode(' ', $scoreCases),
+					$idList
+				);
+			}
 
 			$this->query($sql, $scoreParams);
 		}
