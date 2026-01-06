@@ -35,8 +35,8 @@ final readonly class GradeCalculator extends AbstractCalculator implements Calcu
 		$expectedStPct    = max(1, $this->getConfigValue('expectedStPct',    $tier, 1));
 		$expectedSeasons  = max(1, $this->getConfigValue('expectedSeasons',  $tier, 3.0));
 
-		// 1) AV Score - production-focused curve
-		// Curve: 0x = 0.0, 0.5x = 0.4, 1x = 0.8 (met expectations), 1.5x = 0.9, 2x+ = 1.0
+		// 1) AV Score - production-focused curve with bonus for extreme overperformers
+		// Curve: 0x = 0.0, 1x = 0.8, 2x = 1.0, 3x = 1.05, 4x = 1.08
 		$ratioAv = $player->firstStintAv / $expectedAv;
 		$ratioAv = min($ratioAv, 4.0); // cap extreme outliers at 4x
 
@@ -47,8 +47,8 @@ final readonly class GradeCalculator extends AbstractCalculator implements Calcu
 			// 1x to 2x: 0.8 -> 1.0
 			$avScore = 0.8 + ($ratioAv - 1.0) * 0.2;
 		} else {
-			// Above 2x: cap at 1.0 (no bonus for extreme overperformance)
-			$avScore = 1.0;
+			// Above 2x: 1.0 -> 1.08 for extreme overperformers (rewards 3x-4x players)
+			$avScore = 1.0 + min(($ratioAv - 2.0), 2.0) * 0.04;
 		}
 
 		// 2) Usage Score - full spectrum mapping (not just "over expectation")
@@ -88,9 +88,9 @@ final readonly class GradeCalculator extends AbstractCalculator implements Calcu
 		// 5) Combine all factors with weights (production-focused)
 		$gradeCfg = $this->config['grade'] ?? [];
 		$avWeight      = $gradeCfg['avWeight']      ?? 0.70;  // Production is king
-		$awardWeight   = $gradeCfg['awardWeight']   ?? 0.10;  // Nice to have, not required
-		$usageWeight   = $gradeCfg['usageWeight']   ?? 0.12;  // Supporting metric
-		$starterWeight = $gradeCfg['starterWeight'] ?? 0.08;  // Supporting metric
+		$awardWeight   = $gradeCfg['awardWeight']   ?? 0.05;  // Minor bonus for accolades
+		$usageWeight   = $gradeCfg['usageWeight']   ?? 0.15;  // Supporting metric
+		$starterWeight = $gradeCfg['starterWeight'] ?? 0.10;  // Supporting metric
 
 		$rawGrade =
 			$avWeight      * $avScore +
