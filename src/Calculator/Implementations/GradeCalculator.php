@@ -35,17 +35,21 @@ final readonly class GradeCalculator extends AbstractCalculator implements Calcu
 		$expectedStPct    = max(1, $this->getConfigValue('expectedStPct',    $tier, 1));
 		$expectedSeasons  = max(1, $this->getConfigValue('expectedSeasons',  $tier, 3.0));
 
-		// 1) AV Score - meeting expectations is valued, exceeding is rewarded
-		// Curve: 0x = 0.0, 1x = 0.6 (met expectations), 2x = 0.73, 4x = 1.0
+		// 1) AV Score - meeting expectations is highly valued, exceeding is rewarded
+		// Curve: 0x = 0.0, 0.5x = 0.45, 1x = 0.9 (met expectations), 2x = 1.0, 3x = 1.05, 4x = 1.1
+		// Allow scores above 1.0 to reward extreme overperformance (especially for late picks with no awards)
 		$ratioAv = $player->firstStintAv / $expectedAv;
 		$ratioAv = min($ratioAv, 4.0); // cap extreme outliers at 4x
 
 		if ($ratioAv <= 1.0) {
-			// Below or at expectation: linear 0.0 -> 0.6
-			$avScore = 0.6 * $ratioAv;
+			// Below or at expectation: linear 0.0 -> 0.9
+			$avScore = 0.9 * $ratioAv;
+		} elseif ($ratioAv <= 2.0) {
+			// 1x to 2x: 0.9 -> 1.0
+			$avScore = 0.9 + ($ratioAv - 1.0) * 0.1;
 		} else {
-			// Above expectation: 0.6 -> 1.0 over the range [1x, 4x]
-			$avScore = 0.6 + (($ratioAv - 1.0) / 3.0) * 0.4;
+			// Above 2x: 1.0 -> 1.1 for extreme overperformers (3x-4x)
+			$avScore = 1.0 + min(($ratioAv - 2.0), 2.0) * 0.05;
 		}
 
 		// 2) Usage Score - full spectrum mapping (not just "over expectation")
@@ -82,12 +86,12 @@ final readonly class GradeCalculator extends AbstractCalculator implements Calcu
 			$starterScore = $this->clamp($starterRatio);
 		}
 
-		// 5) Combine all factors with weights
+		// 5) Combine all factors with weights (production-focused)
 		$gradeCfg = $this->config['grade'] ?? [];
-		$avWeight      = $gradeCfg['avWeight']      ?? $stealCfg['avOverWeight']    ?? 0.45;
-		$awardWeight   = $gradeCfg['awardWeight']   ?? $stealCfg['awardWeight']     ?? 0.20;
-		$usageWeight   = $gradeCfg['usageWeight']   ?? $stealCfg['usageOverWeight'] ?? 0.15;
-		$starterWeight = $gradeCfg['starterWeight'] ?? $stealCfg['starterWeight']   ?? 0.20;
+		$avWeight      = $gradeCfg['avWeight']      ?? 0.70;  // Production is king
+		$awardWeight   = $gradeCfg['awardWeight']   ?? 0.10;  // Nice to have, not required
+		$usageWeight   = $gradeCfg['usageWeight']   ?? 0.12;  // Supporting metric
+		$starterWeight = $gradeCfg['starterWeight'] ?? 0.08;  // Supporting metric
 
 		$rawGrade =
 			$avWeight      * $avScore +
