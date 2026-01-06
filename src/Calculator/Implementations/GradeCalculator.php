@@ -36,19 +36,22 @@ final readonly class GradeCalculator extends AbstractCalculator implements Calcu
 		$expectedSeasons  = max(1, $this->getConfigValue('expectedSeasons',  $tier, 3.0));
 
 		// 1) AV Score - production-focused curve with bonus for extreme overperformers
-		// Curve: 0x = 0.0, 1x = 0.8, 2x = 1.0, 3x = 1.05, 4x = 1.08
+		// Curve: 0x = 0.0, 1x = 0.75, 2x = 0.90, 3x = 1.0, 4x = 1.05
 		$ratioAv = $player->firstStintAv / $expectedAv;
 		$ratioAv = min($ratioAv, 4.0); // cap extreme outliers at 4x
 
 		if ($ratioAv <= 1.0) {
-			// Below or at expectation: 0.0 -> 0.8
-			$avScore = 0.8 * $ratioAv;
+			// Below or at expectation: 0.0 -> 0.75
+			$avScore = 0.75 * $ratioAv;
 		} elseif ($ratioAv <= 2.0) {
-			// 1x to 2x: 0.8 -> 1.0
-			$avScore = 0.8 + ($ratioAv - 1.0) * 0.2;
+			// 1x to 2x: 0.75 -> 0.90
+			$avScore = 0.75 + ($ratioAv - 1.0) * 0.15;
+		} elseif ($ratioAv <= 3.0) {
+			// 2x to 3x: 0.90 -> 1.0 (sweet spot for great picks)
+			$avScore = 0.90 + ($ratioAv - 2.0) * 0.10;
 		} else {
-			// Above 2x: 1.0 -> 1.08 for extreme overperformers (rewards 3x-4x players)
-			$avScore = 1.0 + min(($ratioAv - 2.0), 2.0) * 0.04;
+			// Above 3x: 1.0 -> 1.05 for extreme overperformers (rewards 4x players)
+			$avScore = 1.0 + ($ratioAv - 3.0) * 0.05;
 		}
 
 		// 2) Usage Score - full spectrum mapping (not just "over expectation")
