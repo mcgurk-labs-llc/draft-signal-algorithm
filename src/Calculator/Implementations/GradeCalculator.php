@@ -112,6 +112,27 @@ final readonly class GradeCalculator extends AbstractCalculator implements Calcu
 		$finalGrade = $rawGrade * $longevityFactor;
 		$finalGrade = $this->clamp($finalGrade);
 
+		// Debug output for key players
+		if (in_array($player->name, ['Nick Bosa', 'Deebo Samuel'], true)) {
+			error_log(sprintf(
+				"[DEBUG] %s (Tier %s, %.2fx AV): AV=%.3f (%.0f%%), Award=%.3f (%.0f%%), Usage=%.3f (%.0f%%), Starter=%.3f (%.0f%%), Longevity=%.3f => Raw=%.3f, Final=%.3f",
+				$player->name,
+				$tier,
+				$ratioAv,
+				$avScore,
+				$avWeight * 100,
+				$awardScore,
+				$awardWeight * 100,
+				$usageScore,
+				$usageWeight * 100,
+				$starterScore,
+				$starterWeight * 100,
+				$longevityFactor,
+				$rawGrade,
+				$finalGrade
+			));
+		}
+
 		return new CalculatorResult(
 			playerId: $player->id,
 			playerName: $player->name,
