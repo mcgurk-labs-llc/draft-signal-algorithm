@@ -1,4 +1,4 @@
-name: Scrape Pro Bowler Data
+name: Scrape New Season Data
 
 on:
   workflow_dispatch:
@@ -11,6 +11,14 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Restore scrape progress
+        uses: actions/cache@v4
+        with:
+          path: scrape-progress-*.json
+          key: scrape-progress-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: scrape-progress-
+          save-always: true
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2

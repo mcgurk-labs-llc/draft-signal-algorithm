@@ -1,19 +1,16 @@
 <?php
 
-declare(strict_types=1);
-
 // Annual scraper for Draft Signal. Run after the NFL season completes and PFR updates.
 // Usage: php scrape-new-data.php [--year=2025] [--reset]
 
-require_once __DIR__ . '/vendor/autoload.php';
+require_once 'vendor/autoload.php';
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ConnectException;
 use Symfony\Component\CssSelector\CssSelectorConverter;
 use Symfony\Component\DomCrawler\Crawler;
 
-function scrapeLog(string $message): void
-{
+function scrapeLog(string $message): void {
 	echo '[' . date('Y-m-d H:i:s') . '] ' . $message . PHP_EOL;
 }
 
@@ -53,8 +50,7 @@ function getWebpage(string $url): Crawler
 	throw new RuntimeException('Failed to fetch webpage: ' . $url);
 }
 
-function queryDb(string $sql, array $params = []): array
-{
+function queryDb(string $sql, array $params = []): array {
 	$httpClient = new Client();
 	$maxRetries = 1;
 	$attempt = 0;
@@ -86,16 +82,14 @@ function queryDb(string $sql, array $params = []): array
 	throw new RuntimeException('Failed to query database');
 }
 
-function normalizeTeamAbbreviation(string $rawAbbrev): string
-{
+function normalizeTeamAbbreviation(string $rawAbbrev): string {
 	return match ($rawAbbrev) {
 		'STL' => 'LAR', 'OAK' => 'LVR', 'SDG' => 'LAC',
 		default => $rawAbbrev,
 	};
 }
 
-function normalizeTeamName(string $rawName): string
-{
+function normalizeTeamName(string $rawName): string {
 	return match ($rawName) {
 		'St. Louis Rams' => 'Los Angeles Rams',
 		'Oakland Raiders' => 'Las Vegas Raiders',
@@ -106,8 +100,7 @@ function normalizeTeamName(string $rawName): string
 	};
 }
 
-function getTextContentFromElement(Crawler $parentDomNode, string $selector, ?string $backupSelector = null): string
-{
+function getTextContentFromElement(Crawler $parentDomNode, string $selector, ?string $backupSelector = null): string {
 	$firstTry = $parentDomNode->filter($selector);
 	if ($firstTry->count() === 0 && $backupSelector !== null) {
 		return trim($parentDomNode->filter($backupSelector)->text());
@@ -115,13 +108,11 @@ function getTextContentFromElement(Crawler $parentDomNode, string $selector, ?st
 	return trim($firstTry->text());
 }
 
-function cssSelector(string $selector): string
-{
+function cssSelector(string $selector): string {
 	return (new CssSelectorConverter())->toXPath($selector);
 }
 
-function buildAwardRowsToInsert(string $rawAwardString): array
-{
+function buildAwardRowsToInsert(string $rawAwardString): array {
 	$s = trim($rawAwardString);
 	if ($s === '') {
 		return [];
@@ -147,21 +138,7 @@ function buildAwardRowsToInsert(string $rawAwardString): array
 	return $out;
 }
 
-// Call BEFORE each ScrapingBee request; set $stopwatch = microtime(true) AFTER each request.
-function applyRateLimit(float $stopwatch): void
-{
-	if ($stopwatch > 0) {
-		$elapsed = microtime(true) - $stopwatch;
-		$targetDelay = 5 + mt_rand(0, 3000) / 1000;
-		$remaining = $targetDelay - $elapsed;
-		if ($remaining > 0) {
-			usleep((int) ceil($remaining * 1_000_000));
-		}
-	}
-}
-
-function loadProgress(string $filePath, int $year): array
-{
+function loadProgress(string $filePath, int $year): array {
 	if (file_exists($filePath)) {
 		$data = json_decode(file_get_contents($filePath), true);
 		if ($data && ($data['year'] ?? null) === $year) {
@@ -178,15 +155,13 @@ function loadProgress(string $filePath, int $year): array
 	];
 }
 
-function saveProgress(string $filePath, array $progress): void
-{
+function saveProgress(string $filePath, array $progress): void {
 	file_put_contents($filePath, json_encode($progress, JSON_PRETTY_PRINT));
 }
 
 // Extract season stats rows from a player's PFR page.
 // If $targetYear is set, only returns rows for that season.
-function extractSeasonStats(Crawler $dom, int $playerId, ?int $targetYear = null): array
-{
+function extractSeasonStats(Crawler $dom, int $playerId, ?int $targetYear = null): array {
 	$playerTeamSeasons = [];
 	$lastYear = null;
 
@@ -264,8 +239,7 @@ function extractSeasonStats(Crawler $dom, int $playerId, ?int $targetYear = null
 	return $playerTeamSeasons;
 }
 
-function extractSnapCounts(Crawler $dom, array &$playerTeamSeasons): void
-{
+function extractSnapCounts(Crawler $dom, array &$playerTeamSeasons): void {
 	for ($i = 0; $i < count($playerTeamSeasons); $i++) {
 		$pts = &$playerTeamSeasons[$i];
 		if (!empty($pts['is_multi_team_summary']) || isset($pts['st_snaps'])) {
@@ -315,8 +289,7 @@ function extractSnapCounts(Crawler $dom, array &$playerTeamSeasons): void
 	}
 }
 
-function persistSeasonStats(array $playerTeamSeasons): void
-{
+function persistSeasonStats(array $playerTeamSeasons): void {
 	foreach ($playerTeamSeasons as $pts) {
 		if (!empty($pts['awards'])) {
 			$teamForAward = str_contains($pts['team_abbrev'], 'TM') ? null : $pts['team_abbrev'];
@@ -346,8 +319,7 @@ function persistSeasonStats(array $playerTeamSeasons): void
 }
 
 // Step 1: Scrape new draft picks from PFR
-function scrapeDraftPicks(int $year): void
-{
+function scrapeDraftPicks(int $year): void {
 	scrapeLog("Step 1: Scraping {$year} draft picks from PFR...");
 	$dom = getWebpage("https://www.pro-football-reference.com/years/{$year}/draft.htm");
 	$xpath = (new CssSelectorConverter())->toXPath('table#drafts tbody tr:not(.thead)');
@@ -401,8 +373,7 @@ function scrapeDraftPicks(int $year): void
 }
 
 // Step 2: Scrape undrafted players from Wikipedia
-function scrapeUndraftedPlayers(int $year): void
-{
+function scrapeUndraftedPlayers(int $year): void {
 	scrapeLog("Step 2: Scraping {$year} undrafted players from Wikipedia...");
 	$dom = getWebpage("https://en.wikipedia.org/wiki/{$year}_NFL_draft");
 
@@ -438,22 +409,21 @@ function scrapeUndraftedPlayers(int $year): void
 }
 
 // Step 3: Find PFR links for undrafted players via their Wikipedia pages
-function applyPfrLinksToUndrafteds(int $year, array &$progress, string $progressFile): void
-{
+function applyPfrLinksToUndrafteds(int $year, array &$progress, string $progressFile): void {
 	scrapeLog("Step 3: Finding PFR links for {$year} undrafted players...");
 	$players = queryDb(
 		'SELECT id, name, wikipedia_link FROM players WHERE draft_year = ? AND wikipedia_link IS NOT NULL AND pro_football_reference_link IS NULL AND draft_round IS NULL',
 		[$year]
 	)['result'][0]['results'] ?? [];
 
-	$stopwatch = 0.0;
+
 	foreach ($players as $player) {
 		if (in_array($player['id'], $progress['pfr_links_completed_ids'])) continue;
 
-		applyRateLimit($stopwatch);
+
 		try {
 			$dom = getWebpage($player['wikipedia_link']);
-			$stopwatch = microtime(true);
+
 			$xpath = (new CssSelectorConverter())->toXPath('a[href^="https://www.pro-football-reference.com/players"]');
 			$matches = $dom->filterXPath($xpath);
 			if ($matches->count() > 0) {
@@ -463,7 +433,7 @@ function applyPfrLinksToUndrafteds(int $year, array &$progress, string $progress
 				scrapeLog("  No PFR link found for {$player['name']}");
 			}
 		} catch (Throwable $e) {
-			$stopwatch = microtime(true);
+
 			scrapeLog("  Error for {$player['name']}: " . $e->getMessage());
 		}
 
@@ -473,15 +443,14 @@ function applyPfrLinksToUndrafteds(int $year, array &$progress, string $progress
 }
 
 // Step 4: Process new players - extract position, photo, and full career stats in one page fetch
-function processNewPlayers(int $year, array &$progress, string $progressFile): void
-{
+function processNewPlayers(int $year, array &$progress, string $progressFile): void {
 	scrapeLog("Step 4: Processing new {$year} players (position, photo, stats)...");
 	$players = queryDb(
 		"SELECT id, pro_football_reference_link as pfr_link, name FROM players WHERE draft_year = ? AND completed_import = 0 AND no_data = 0 AND pro_football_reference_link IS NOT NULL AND pro_football_reference_link != ''",
 		[$year]
 	)['result'][0]['results'] ?? [];
 
-	$stopwatch = 0.0;
+
 	foreach ($players as $player) {
 		if (in_array($player['id'], $progress['new_players_completed_ids'])) continue;
 		if (empty($player['name'])) {
@@ -491,7 +460,7 @@ function processNewPlayers(int $year, array &$progress, string $progressFile): v
 			continue;
 		}
 
-		applyRateLimit($stopwatch);
+
 		scrapeLog("  Processing {$player['name']}...");
 
 		try {
@@ -499,7 +468,7 @@ function processNewPlayers(int $year, array &$progress, string $progressFile): v
 			queryDb('DELETE FROM player_awards WHERE player_id = ?', [$player['id']]);
 
 			$dom = getWebpage($player['pfr_link']);
-			$stopwatch = microtime(true);
+
 
 			// Position from #meta
 			try {
@@ -525,7 +494,7 @@ function processNewPlayers(int $year, array &$progress, string $progressFile): v
 
 			queryDb('UPDATE players SET completed_import = 1, no_data = 0 WHERE id = ?', [$player['id']]);
 		} catch (Throwable $e) {
-			$stopwatch = microtime(true);
+
 			scrapeLog("    Error: " . $e->getMessage());
 			queryDb('UPDATE players SET no_data = 1 WHERE id = ?', [$player['id']]);
 		}
@@ -536,8 +505,7 @@ function processNewPlayers(int $year, array &$progress, string $progressFile): v
 }
 
 // Step 5: Add new season stats for existing players who played last season
-function updateExistingPlayers(int $year, array &$progress, string $progressFile): void
-{
+function updateExistingPlayers(int $year, array &$progress, string $progressFile): void {
 	$previousSeason = $year - 1;
 	scrapeLog("Step 5: Updating existing players with {$year} season stats...");
 
@@ -554,16 +522,16 @@ function updateExistingPlayers(int $year, array &$progress, string $progressFile
 
 	scrapeLog("  " . count($players) . " existing players to check");
 
-	$stopwatch = 0.0;
+
 	foreach ($players as $player) {
 		if (in_array($player['id'], $progress['existing_players_completed_ids'])) continue;
 
-		applyRateLimit($stopwatch);
+
 		scrapeLog("  Checking {$player['name']}...");
 
 		try {
 			$dom = getWebpage($player['pfr_link']);
-			$stopwatch = microtime(true);
+
 
 			$seasons = extractSeasonStats($dom, (int) $player['id'], $year);
 			if (!empty($seasons)) {
@@ -573,7 +541,7 @@ function updateExistingPlayers(int $year, array &$progress, string $progressFile
 				persistSeasonStats($seasons);
 			}
 		} catch (Throwable $e) {
-			$stopwatch = microtime(true);
+
 			scrapeLog("    Error: " . $e->getMessage());
 		}
 
