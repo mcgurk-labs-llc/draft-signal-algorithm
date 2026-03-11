@@ -7,3 +7,4 @@ vendor/
 env.php
 .gitkeep
 logs/
+scrape-progress-*.json
