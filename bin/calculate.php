@@ -7,6 +7,7 @@ if (file_exists('env.php')) {
 
 use DraftSignal\Algorithm\Calculator\Implementations\BustCalculator;
 use DraftSignal\Algorithm\Calculator\Implementations\StealCalculator;
+use DraftSignal\Algorithm\Calculator\Implementations\GradeCalculator;
 use DraftSignal\Algorithm\Config\ConfigLoader;
 use DraftSignal\Algorithm\Data\CloudflarePlayerDataProvider;
 use DraftSignal\Algorithm\Runner\CalculatorRunner;
@@ -28,6 +29,8 @@ if ($command === 'busts') {
 	$calculator = new BustCalculator($tierResolver, $config);
 } else if ($command === 'steals') {
 	$calculator = new StealCalculator($tierResolver, $config);
+} else if ($command === 'grades') {
+	$calculator = new GradeCalculator($tierResolver, $config);
 } else {
 	echo "The {$command} calculator is not implemented yet.";
 	exit(1);

@@ -26,6 +26,19 @@ The steal calculator identifies players who significantly exceeded expectations 
 
 Auto-steal logic: Players drafted in round 4+ with elite accolades (2+ AP1 or 4+ Pro Bowls) are automatically classified as steals.
 
+### Grade Calculator
+
+The grade calculator provides an overall evaluation of draft pick performance on a 0.0-1.0 scale. Unlike bust/steal calculators which identify extremes, grades measure the full spectrum of performance. Key features:
+
+- **Meeting expectations valued** - Players who meet tier expectations receive solid grades (~0.6)
+- **Exceeding expectations rewarded** - 2x expected AV = ~0.75, 4x expected AV = 1.0
+- **Production metrics** - AV, snap counts, snap percentages, games started
+- **Awards recognition** - Pro Bowls, All-Pro, MVP, OPOY/DPOY, ROY
+- **Longevity factor** - Penalizes flash-in-the-pan or injury-shortened careers
+- **Tier-relative grading** - UDFA contributors (e.g., Jordan Mason) can earn A grades by exceeding UDFA expectations
+
+Zero production (0 games played) = 0.0 grade regardless of draft position.
+
 ### Tier System
 
 Players are grouped into tiers (A-O, plus UDFA) based on draft position:
@@ -80,6 +93,9 @@ php bin/calculate.php --persist busts
 # Calculate steal scores
 php bin/calculate.php --persist steals
 
+# Calculate grades
+php bin/calculate.php --persist grades
+
 # Calculate for a specific team
 php bin/calculate.php --team=49 --persist busts
 
@@ -104,6 +120,7 @@ composer test
 # Run specific test file
 ./vendor/bin/phpunit tests/Unit/BustCalculatorTest.php
 ./vendor/bin/phpunit tests/Unit/StealCalculatorTest.php
+./vendor/bin/phpunit tests/Unit/GradeCalculatorTest.php
 
 # Run compilation check
 ./tests/compilation-test.sh
@@ -124,7 +141,8 @@ composer test
 │   │   ├── CalculatorResult.php
 │   │   └── Implementations/
 │   │       ├── BustCalculator.php   # Bust algorithm
-│   │       └── StealCalculator.php  # Steal algorithm
+│   │       ├── StealCalculator.php  # Steal algorithm
+│   │       └── GradeCalculator.php  # Grade algorithm
 │   ├── Config/
 │   │   └── ConfigLoader.php
 │   ├── Data/
